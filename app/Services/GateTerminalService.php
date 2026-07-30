@@ -62,7 +62,7 @@ class GateTerminalService
     /**
      * @return array{ok: bool, message?: string, gate?: string}
      */
-    public function claim(string $terminalToken, string $gate): array
+    public function claim(string $terminalToken, string $gate, bool $force = false): array
     {
         $terminalToken = trim($terminalToken);
         $gate = trim($gate);
@@ -80,7 +80,11 @@ class GateTerminalService
 
         $existingForGate = GateTerminalClaim::query()->where('gate', $gate)->first();
         if ($existingForGate !== null && $existingForGate->terminal_token !== $terminalToken) {
-            return ['ok' => false, 'message' => 'That gate is already in use on another terminal.'];
+            if (! $force) {
+                return ['ok' => false, 'message' => 'That gate is already in use on another terminal.'];
+            }
+            // Offline kiosks may take over freely.
+            $existingForGate->delete();
         }
 
         GateTerminalClaim::query()->where('terminal_token', $terminalToken)->delete();

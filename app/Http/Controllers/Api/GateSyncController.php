@@ -51,7 +51,7 @@ class GateSyncController extends Controller
             'gate' => 'required|string|max:120',
         ]);
 
-        $result = $gates->claim($device->claimToken(), $validated['gate']);
+        $result = $gates->claim($device->claimToken(), $validated['gate'], force: true);
 
         if (! ($result['ok'] ?? false)) {
             return response()->json([

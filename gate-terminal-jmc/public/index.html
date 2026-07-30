@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>JMC — Gate Terminal (Offline)</title>
+  <title>Library Attendance — Offline Gate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="/css/branding.css">
   <link rel="stylesheet" href="/css/scan.css">
   <link rel="stylesheet" href="/css/gate-overrides.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="scan-kiosk-page">
+<body>
 
 <div id="syncBadge" class="gate-sync-badge gate-sync-badge--loading" aria-live="polite">Checking connection…</div>
 
@@ -16,11 +16,12 @@
   <div class="header">
     <div class="logo-title">
       <img src="/images/pantasLogo.png" alt="Logo" onerror="this.src='/images/d.png'; this.onerror=null;">
-    </div>
-    <div class="gate-terminal-badge" id="gateTerminalBadge" hidden>
-      <span class="gate-terminal-badge__label">Gate:</span>
-      <strong id="gateTerminalLabel"></strong>
-      <button type="button" class="gate-terminal-badge__change" id="gateTerminalChange">Change</button>
+      <div class="system-title">POWERED BY PANTAS</div>
+      <div class="gate-terminal-badge" id="gateTerminalBadge" hidden>
+        <span class="gate-terminal-badge__label">Gate:</span>
+        <strong id="gateTerminalLabel"></strong>
+        <button type="button" class="gate-terminal-badge__change" id="gateTerminalChange">Change</button>
+      </div>
     </div>
   </div>
 </header>
@@ -29,24 +30,16 @@
   <div class="sidebar" id="scanSidebar">
     <div class="date" id="currentDate">Date</div>
     <div class="time" id="currentTime">--:--:--</div>
+
     <div class="profile-pic">
-      <img src="/images/2x2_undifined_gender.jpg" alt="Default Profile" id="profileImg"
-           onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect fill=%22%23e3f4fc%22 width=%22200%22 height=%22200%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%23125a82%22 font-size=%2218%22%3EPhoto%3C/text%3E%3C/svg%3E'">
+      <img src="/images/2x2_undifined_gender.jpg" alt="Default Profile" id="profileImg">
     </div>
+
     <div id="earlyOutAlarm" class="early-out-alarm" hidden aria-live="assertive" role="alert">
       <div class="early-out-alarm__icon">⚠</div>
       <div class="early-out-alarm__title">Early checkout not allowed</div>
       <p class="early-out-alarm__message" id="earlyOutAlarmMessage"></p>
       <p class="early-out-alarm__hint">Allowed after <strong id="earlyOutAlarmTime">4:00 PM</strong></p>
-    </div>
-  </div>
-
-  <div class="sidebar-divider" id="scanDivider">
-    <div class="scan-name-display" id="scanNameDisplay" hidden>
-      <div class="scan-name-welcome">Welcome,</div>
-      <div class="scan-name-text" id="scanNameText"></div>
-      <div class="scan-status-badge" id="scanStatusBadge"></div>
-      <div class="scan-name-timestamp" id="scanNameTimestamp"></div>
     </div>
   </div>
 
@@ -65,7 +58,7 @@
     <div class="footer-logo">
       <div class="marquee-container">
         <div class="marquee">
-          <span id="footerAppName">JMC Library</span>
+          <span id="footerAppName">Welcome to Jose Maria College</span>
         </div>
       </div>
     </div>
@@ -75,16 +68,16 @@
 <div id="gateTerminalModal" class="section-modal gate-terminal-modal" aria-hidden="true" style="display:none;">
   <div class="modal-content section-picker-modal">
     <h2>Which gate is this terminal?</h2>
-    <p class="gate-terminal-modal__hint">Choose the gate for this kiosk. When online, gates already used on another terminal are hidden.</p>
+    <p class="gate-terminal-modal__hint">Pick any gate. You can change it anytime with the Change button.</p>
     <div class="section-buttons gate-terminal-buttons" id="gateTerminalButtons"></div>
-    <p class="section-empty-msg" id="gateTerminalEmpty" hidden>No gates available. Sync when online, or free a gate on another terminal.</p>
+    <p class="section-empty-msg" id="gateTerminalEmpty" hidden>No gates configured. Sync when online, or ask admin to add gates.</p>
     <p class="gate-terminal-modal__loading" id="gateTerminalLoading" hidden>Loading gates…</p>
   </div>
 </div>
 
 <div id="sectionModal" class="section-modal" aria-hidden="true" style="display:none;">
   <div class="modal-content section-picker-modal">
-    <h2>Select library section</h2>
+    <h2>Select section</h2>
     <div class="section-buttons" id="sectionButtons"></div>
   </div>
 </div>

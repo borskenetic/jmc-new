@@ -22,7 +22,7 @@
             <div class="mt-2">
                 <code class="user-select-all">{{ session('issued_token') }}</code>
             </div>
-            <p class="small mb-0 mt-2">Device: {{ session('issued_device_name') }}. Paste into <code>gate-terminal-jmc/config.json</code> as <code>device_token</code>.</p>
+            <p class="small mb-0 mt-2">Device: {{ session('issued_device_name') }}. Paste into <code>gate-terminal/config.json</code> as <code>device_token</code>.</p>
         </div>
     @endif
 

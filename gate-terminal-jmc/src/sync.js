@@ -11,6 +11,7 @@ const {
   applyRemoteLog,
   getSelectedGate,
   setSelectedGate,
+  findCanonicalGate,
   getSettings,
 } = require('./db');
 
@@ -61,8 +62,15 @@ async function pullRoster(config) {
 
     const selected = getSelectedGate();
     const gates = payload.settings.gate_terminals || [];
-    if (selected && gates.length > 0 && !gates.includes(selected)) {
-      setSelectedGate(null);
+    if (selected && gates.length > 0) {
+      const canonical = findCanonicalGate(selected, gates);
+      if (!canonical) {
+        // Gate was removed from admin list — force re-pick.
+        setSelectedGate(null);
+      } else if (canonical !== selected) {
+        // Normalize whitespace/casing to the cloud name.
+        setSelectedGate(canonical);
+      }
     }
   }
 
@@ -139,13 +147,16 @@ async function refreshGateClaim(config) {
   if (!gate) return null;
 
   try {
-    return await cloudFetch(config, '/gates/claim', {
+    const result = await cloudFetch(config, '/gates/claim', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ gate }),
     });
+    // Keep local selection even if cloud occupancy is contested.
+    return result;
   } catch (error) {
-    return { ok: false, message: error.message };
+    // Do NOT clear selected_gate — kiosks must keep scanning with their chosen gate.
+    return { ok: false, message: error.message, keep_local: true };
   }
 }
 
@@ -185,4 +196,5 @@ module.exports = {
   refreshGateClaim,
   fetchAvailableGates,
   cloudFetch,
+  findCanonicalGate,
 };

@@ -7,6 +7,8 @@ const {
   countPending,
   setSyncState,
   getSelectedGate,
+  setSelectedGate,
+  findCanonicalGate,
 } = require('./db');
 
 const TZ = 'Asia/Manila';
@@ -133,8 +135,15 @@ function requireGate(settings) {
     return { ok: false, message: 'Select a gate on this terminal before scanning.' };
   }
 
-  if (allowed.length > 0 && !allowed.includes(gate)) {
-    return { ok: false, message: 'Selected gate is no longer valid. Choose a gate again.' };
+  if (allowed.length > 0) {
+    const canonical = findCanonicalGate(gate, allowed);
+    if (!canonical) {
+      return { ok: false, message: 'Selected gate is no longer valid. Choose a gate again.' };
+    }
+    if (canonical !== gate) {
+      setSelectedGate(canonical);
+    }
+    return { ok: true, gate: canonical };
   }
 
   return { ok: true, gate };

@@ -1,4 +1,113 @@
-/* Offline gate: connection badge + test panel (hidden in production kiosk) */
+/* Offline-only overlays + USM layout fixes (works even if desktop still has old index.html) */
+
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.sidebar {
+  width: 350px;
+  flex: 0 0 350px;
+  align-self: stretch;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--brand-nav-link, #4b0082) !important;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1440px) {
+  .sidebar {
+    width: min(350px, 28vw);
+    flex-basis: min(350px, 28vw);
+  }
+
+  .header .system-title {
+    font-size: clamp(18px, 2.2vw, 28px);
+  }
+
+  .header img {
+    height: clamp(2.8rem, 6vh, 4rem);
+    margin-left: 1rem;
+  }
+}
+
+.sidebar .name-box {
+  width: 100% !important;
+  max-width: 100%;
+  height: auto !important;
+  min-height: 8rem;
+  box-sizing: border-box;
+}
+
+.right-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #151515;
+  width: 100%;
+}
+
+.right-content .ads-vid,
+.right-content video {
+  max-width: 92%;
+  max-height: 85%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Old HTML still has this strip — hide it for USM-style layout */
+.sidebar-divider,
+.scan-name-display {
+  display: none !important;
+}
+
+.marquee-container {
+  width: 100%;
+  overflow: hidden;
+  background-color: #222;
+  color: #fff;
+  border-top: 2px solid #444;
+  padding: 15px 0;
+  box-sizing: border-box;
+}
+
+.marquee {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  animation: gate-scroll-text 15s linear infinite;
+  font-family: var(--brand-font-family, 'Poppins', sans-serif);
+  font-weight: 700;
+  font-size: 24px;
+  color: #fff;
+}
+
+@keyframes gate-scroll-text {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100%); }
+}
 
 .gate-sync-badge {
   position: fixed;
@@ -59,33 +168,33 @@
   padding: 8px 16px;
   border: none;
   border-radius: 8px;
-  background: var(--brand-primary, #29abe2);
+  background: var(--brand-button-bg, #4b0082);
   color: #fff;
   font-weight: 600;
   cursor: pointer;
 }
 
 .gate-test-btn:hover {
-  background: var(--brand-primary-dark, #1a8fc4);
+  background: var(--brand-button-hover-bg, #3a0066);
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+.header .logo-title {
+  flex-wrap: wrap;
 }
 
 .gate-terminal-badge {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-left: auto;
   padding: 0.35rem 0.9rem;
-  background: #eef8fd;
+  background: #f3eef8;
+  border: 1px solid rgba(75, 0, 130, 0.35);
   border-radius: 999px;
   font-family: 'Poppins', sans-serif;
   font-size: 0.85rem;
-  color: #125a82;
+  color: #2d004f;
+  flex-shrink: 0;
 }
 
 .gate-terminal-badge__label {
@@ -96,7 +205,7 @@
 .gate-terminal-badge__change {
   border: none;
   background: transparent;
-  color: var(--brand-primary, #29abe2);
+  color: var(--brand-button-bg, #4b0082);
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -106,17 +215,82 @@
   text-decoration: underline;
 }
 
-.gate-terminal-modal__hint {
-  margin: 0 0 1rem;
-  color: #5a6b7a;
-  font-size: 0.95rem;
-  text-align: center;
-}
-
+.gate-terminal-modal__hint,
 .gate-terminal-modal__loading,
 .section-empty-msg {
   margin: 0.5rem 0 0;
   color: #5a6b7a;
   font-size: 0.9rem;
   text-align: center;
+}
+
+.gate-terminal-modal__hint {
+  margin: 0 0 1rem;
+}
+
+.gate-terminal-btn--current {
+  outline: 3px solid #fff;
+  box-shadow: 0 0 0 3px var(--brand-button-bg, #4b0082);
+}
+
+/* Early-out alarm (not in USM scan.css) */
+.sidebar--alarm {
+  animation: sidebar-alarm-pulse 0.6s ease-in-out 6;
+  box-shadow: inset 0 0 0 4px #fbbf24;
+}
+
+@keyframes sidebar-alarm-pulse {
+  0%, 100% { background-color: var(--brand-nav-link, #4b0082); }
+  50% { background-color: #7f1d1d; }
+}
+
+.early-out-alarm {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: #fef2f2;
+  border: 3px solid #dc2626;
+  color: #7f1d1d;
+  text-align: center;
+}
+
+.early-out-alarm__icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.early-out-alarm__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.early-out-alarm__message {
+  font-size: 0.95rem;
+  margin: 0.5rem 0;
+  line-height: 1.35;
+}
+
+.early-out-alarm__hint {
+  font-size: 0.85rem;
+  margin: 0;
+  color: #991b1b;
+}
+
+.name-box--blocked .label {
+  color: #64748b;
+}
+
+.status-button.status-blocked {
+  background: #dc2626;
+  padding: 8px 24px;
+  font-size: 1.1rem;
+}
+
+.sidebar .name-box .label,
+.sidebar .name-box .timestamp {
+  color: #64748b;
 }

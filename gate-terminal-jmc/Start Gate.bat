@@ -38,34 +38,51 @@ if "%SERVER_RUNNING%"=="0" (
     timeout /t 4 /nobreak >nul
 )
 
-REM --- Open scan screen (Edge first, then Chrome), fullscreen/kiosk-friendly ---
-where msedge >nul 2>&1
-if not errorlevel 1 (
-    start "" msedge --kiosk "%GATE_URL%" --edge-kiosk-type=fullscreen --no-first-run --disable-features=TranslateUI
-    goto :bring_browser_forward
+REM --- Find Edge / Chrome by full path (they are often NOT on PATH) ---
+set "BROWSER="
+set "BROWSER_KIND="
+
+if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" (
+    set "BROWSER=%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
+    set "BROWSER_KIND=edge"
+)
+if not defined BROWSER if exist "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe" (
+    set "BROWSER=%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
+    set "BROWSER_KIND=edge"
+)
+if not defined BROWSER if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" (
+    set "BROWSER=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+    set "BROWSER_KIND=chrome"
+)
+if not defined BROWSER if exist "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" (
+    set "BROWSER=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+    set "BROWSER_KIND=chrome"
+)
+if not defined BROWSER if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" (
+    set "BROWSER=%LocalAppData%\Google\Chrome\Application\chrome.exe"
+    set "BROWSER_KIND=chrome"
 )
 
-where chrome >nul 2>&1
-if not errorlevel 1 (
-    start "" chrome --kiosk "%GATE_URL%" --no-first-run --disable-features=TranslateUI
-    goto :bring_browser_forward
+REM --- Open scan screen fullscreen (true kiosk; 1440x900 landscape OK) ---
+if /I "%BROWSER_KIND%"=="edge" (
+    start "" "%BROWSER%" --kiosk "%GATE_URL%" --edge-kiosk-type=fullscreen --no-first-run --disable-features=TranslateUI --check-for-update-interval=31536000
+    exit /b 0
 )
 
+if /I "%BROWSER_KIND%"=="chrome" (
+    start "" "%BROWSER%" --kiosk "%GATE_URL%" --no-first-run --disable-features=TranslateUI --check-for-update-interval=31536000
+    exit /b 0
+)
+
+REM Last resort: default browser, then force maximize (SW_MAXIMIZE=3, NOT restore=9)
 start "" "%GATE_URL%"
-
-:bring_browser_forward
-REM Give the browser a moment, then force it above the console window
-timeout /t 2 /nobreak >nul
-powershell -NoProfile -Command ^
-  "$names = @('msedge','chrome','ApplicationFrameHost');" ^
-  "foreach ($n in $names) {" ^
-  "  Get-Process $n -ErrorAction SilentlyContinue | ForEach-Object {" ^
-  "    try {" ^
-  "      Add-Type -Name W -Namespace N -MemberDefinition '[DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr h, int n);' -ErrorAction SilentlyContinue;" ^
-  "      [void][N.W]::ShowWindow($_.MainWindowHandle, 9);" ^
-  "      [void][N.W]::SetForegroundWindow($_.MainWindowHandle);" ^
-  "    } catch {}" ^
-  "  }" ^
-  "}" >nul 2>&1
+timeout /t 3 /nobreak >nul
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\focus-gate-browser.ps1" >nul 2>&1
+if errorlevel 1 (
+    powershell -NoProfile -Command ^
+      "Add-Type -Name W -Namespace N -MemberDefinition '[DllImport(\"user32.dll\")] public static extern bool ShowWindow(IntPtr h,int n); [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr h);' -ErrorAction SilentlyContinue;" ^
+      "$names=@('msedge','chrome','ApplicationFrameHost','iexplore');" ^
+      "foreach($n in $names){ Get-Process $n -EA SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | ForEach-Object { [void][N.W]::ShowWindow($_.MainWindowHandle,3); [void][N.W]::SetForegroundWindow($_.MainWindowHandle) } }" >nul 2>&1
+)
 
 exit /b 0

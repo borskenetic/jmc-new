@@ -139,6 +139,17 @@ function setSelectedGate(gate) {
   return gate;
 }
 
+function normalizeGateName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function findCanonicalGate(selected, gates) {
+  const needle = normalizeGateName(selected);
+  if (!needle || !Array.isArray(gates)) return null;
+  const match = gates.find((gate) => normalizeGateName(gate) === needle);
+  return match || null;
+}
+
 function upsertStudent(student) {
   db.prepare(`
     INSERT INTO students (
@@ -288,6 +299,8 @@ module.exports = {
   saveSettings,
   getSelectedGate,
   setSelectedGate,
+  normalizeGateName,
+  findCanonicalGate,
   upsertStudent,
   findStudentByToken,
   updateStudentLastLog,

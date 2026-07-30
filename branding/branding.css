@@ -1,15 +1,14 @@
 /*
- * Assumption College of Davao (ACD) — library attendance branding.
- * Colors aligned with https://acd.edu.ph (sky blue hero, white type on blue).
+ * Jose Maria College (JMC) — library attendance branding.
  */
 :root {
-    --brand-font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    --brand-font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif;
 
-    /* ACD palette */
+    /* JMC palette */
     --brand-primary: #4b0082;
-    --brand-primary-dark: #4b0082;
-    --brand-primary-darker: #4b0082;
-    --brand-primary-rgb: 41, 171, 226;
+    --brand-primary-dark: #3a0066;
+    --brand-primary-darker: #2d004f;
+    --brand-primary-rgb: 75, 0, 130;
 
     /* Page */
     --brand-page-bg: #ffffff;
@@ -17,7 +16,7 @@
     /* Navigation (links on light background) */
     --brand-nav-link: var(--brand-primary);
     --brand-nav-link-hover: var(--brand-primary-dark);
-    --brand-nav-dropdown-hover-bg: #ffffff;
+    --brand-nav-dropdown-hover-bg: #f3eef8;
     --brand-nav-dropdown-hover-text: var(--brand-primary-darker);
     --brand-nav-link-active: var(--brand-primary);
 
@@ -43,7 +42,7 @@
     --brand-button-hover-text: #ffffff;
 
     /* Secondary / warning */
-    --brand-warning-bg: #ffffff;
+    --brand-warning-bg: #f5e6ff;
     --brand-warning-text: var(--brand-primary-darker);
 
     /* Footer */

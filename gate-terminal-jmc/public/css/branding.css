@@ -1,58 +1,40 @@
 /*
- * Assumption College of Davao (ACD) — library attendance branding.
- * Colors aligned with https://acd.edu.ph (sky blue hero, white type on blue).
+ * Jose Maria College (JMC) — offline gate terminal branding.
+ * Layout matches USM kiosk; colors stay JMC purple.
  */
 :root {
-    --brand-font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --brand-font-family: 'Poppins', Arial, sans-serif;
+  --brand-font-family-heading: var(--brand-font-family);
 
-    /* ACD palette */
-    --brand-primary: #29abe2;
-    --brand-primary-dark: #1a8fc4;
-    --brand-primary-darker: #125a82;
-    --brand-primary-rgb: 41, 171, 226;
+  /* JMC palette */
+  --brand-primary: #4b0082;
+  --brand-accent: #6b21a8;
+  --brand-text-dark: #333;
+  --brand-text-light: #fff;
 
-    /* Page */
-    --brand-page-bg: #f4f9fc;
+  --brand-page-bg: #ffffff;
+  --brand-school-name-color: #4b0082;
 
-    /* Navigation (links on light background) */
-    --brand-nav-link: var(--brand-primary);
-    --brand-nav-link-hover: var(--brand-primary-dark);
-    --brand-nav-dropdown-hover-bg: #e3f4fc;
-    --brand-nav-dropdown-hover-text: var(--brand-primary-darker);
-    --brand-nav-link-active: var(--brand-primary);
+  /* USM scan.css reads these for chrome — map to JMC purple */
+  --brand-nav-link: #4b0082;
+  --brand-nav-link-active: #ffffff;
+  --brand-nav-hover-bg: #ffffff;
+  --brand-nav-hover-text: #3a0066;
 
-    /* Logout / primary chrome */
-    --brand-logout-bg: var(--brand-primary);
-    --brand-logout-text: #ffffff;
-    --brand-logout-hover-bg: #ffffff;
-    --brand-logout-hover-text: var(--brand-primary);
+  --brand-logout-bg: #4b0082;
+  --brand-logout-text: #ffffff;
 
-    /* Data page card title bar */
-    --brand-card-header-bg: var(--brand-primary-darker);
-    --brand-card-header-text: #ffffff;
+  --brand-button-bg: #4b0082;
+  --brand-button-text: #ffffff;
+  --brand-button-hover-bg: #3a0066;
+  --brand-button-hover-text: #ffffff;
 
-    /* Tables */
-    --brand-table-header-bg: var(--brand-primary);
-    --brand-table-header-text: #ffffff;
+  --brand-footer-bg: #2d004f;
 
-    /* Primary actions (filter, add, submit) */
-    --brand-button-bg: var(--brand-primary);
-    --brand-button-bg-rgb: var(--brand-primary-rgb);
-    --brand-button-text: #ffffff;
-    --brand-button-hover-bg: var(--brand-primary-dark);
-    --brand-button-hover-text: #ffffff;
+  --brand-kiosk-gradient-from: #4b0082;
+  --brand-kiosk-gradient-to: #2d004f;
 
-    /* Secondary / warning */
-    --brand-warning-bg: #ffb845;
-    --brand-warning-text: var(--brand-primary-darker);
-
-    /* Footer */
-    --brand-footer-bg: var(--brand-primary-darker);
-
-    /* Optional heading accent (legacy book pages) */
-    --brand-school-name-color: var(--brand-primary);
-
-    /* Bootstrap */
-    --bs-primary: var(--brand-primary);
-    --bs-primary-rgb: var(--brand-primary-rgb);
+  --brand-primary-dark: #3a0066;
+  --brand-primary-darker: #2d004f;
+  --brand-primary-rgb: 75, 0, 130;
 }

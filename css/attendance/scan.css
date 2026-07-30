@@ -6,7 +6,7 @@ body.scan-kiosk-page {
       height: 100vh;
       min-height: 100vh;
       overflow: hidden;
-      background: var(--brand-page-bg, #f4f9fc);
+      background: var(--brand-page-bg, #ffffff);
     }
 
     .header {
@@ -16,8 +16,8 @@ body.scan-kiosk-page {
       align-items: center;
       justify-content: flex-start;
       gap: clamp(10px, 2vw, 20px);
-      border-bottom: 3px solid var(--brand-primary, #29abe2);
-      box-shadow: 0 4px 18px rgba(18, 90, 130, 0.08);
+      border-bottom: 3px solid var(--brand-primary, #4b0082);
+      box-shadow: 0 4px 18px rgba(45, 0, 79, 0.08);
       z-index: 2;
     }
 
@@ -31,15 +31,59 @@ body.scan-kiosk-page {
     .header > a {
       margin-left: auto;
       flex-shrink: 0;
-      color: var(--brand-primary-darker, #125a82);
+      color: var(--brand-primary-darker, #2d004f);
       font-weight: 600;
       font-size: 0.875rem;
       text-decoration: none;
     }
 
     .header > a:hover {
-      color: var(--brand-primary, #29abe2);
+      color: var(--brand-primary, #4b0082);
     }
+
+    .gate-terminal-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      background: #f3eef8;
+      border: 1px solid rgba(75, 0, 130, 0.35);
+      border-radius: 999px;
+      font-size: 0.8125rem;
+      color: var(--brand-primary-darker, #2d004f);
+      flex-shrink: 0;
+    }
+
+    .gate-terminal-badge__label { opacity: 0.8; }
+
+    .gate-terminal-badge__change {
+      border: none;
+      background: transparent;
+      color: var(--brand-primary, #4b0082);
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    .gate-terminal-badge__change:hover { text-decoration: underline; }
+
+    .gate-terminal-modal__hint {
+      margin: 0 0 1rem;
+      color: #5a6b7a;
+      font-size: 0.95rem;
+      text-align: center;
+    }
+
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: clamp(8px, 1.5vw, 16px);
+      flex-shrink: 0;
+    }
+
+    .header-actions > a { margin-left: 0; }
 
     .header img {
       width: clamp(240px, 28vw, 360px);
@@ -54,7 +98,7 @@ body.scan-kiosk-page {
       min-width: 0;
       font-size: clamp(16px, 2.2vw, 30px);
       font-weight: 700;
-      color: var(--brand-primary-darker, #125a82);
+      color: var(--brand-primary-darker, #2d004f);
       text-transform: uppercase;
       letter-spacing: 1px;
       font-family: 'Poppins', sans-serif;
@@ -66,7 +110,7 @@ body.scan-kiosk-page {
     }
 
     .footer1{
-      background: var(--brand-footer-bg, #125a82);
+      background: var(--brand-footer-bg, #2d004f);
       padding: 10px 20px;
       display: flex;
       align-items: center;
@@ -85,9 +129,9 @@ body.scan-kiosk-page {
     .marquee-container {
       width: 100%;
       overflow: hidden;
-      background-color: var(--brand-footer-bg, #125a82);
+      background-color: var(--brand-footer-bg, #2d004f);
       color: #ffffff;
-      border-top: 2px solid var(--brand-primary, #29abe2);
+      border-top: 2px solid var(--brand-primary, #4b0082);
       padding: 15px 0;
       box-sizing: border-box;
     }
@@ -141,7 +185,7 @@ body.scan-kiosk-page {
       padding: 9px 18px;
       border: 0;
       border-radius: 8px;
-      background-color: var(--brand-primary-darker, #125a82);
+      background-color: var(--brand-primary-darker, #2d004f);
       color: #ffffff;
       cursor: pointer;
       font-family: var(--brand-font-family, 'Poppins', Arial, sans-serif);
@@ -149,18 +193,18 @@ body.scan-kiosk-page {
       font-weight: 700;
       text-decoration: none;
       white-space: nowrap;
-      box-shadow: 0 8px 18px rgba(18, 90, 130, 0.16);
+      box-shadow: 0 8px 18px rgba(45, 0, 79, 0.16);
       transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
     }
 
     .home-button:hover {
-      background-color: var(--brand-button-hover-bg, #1a8fc4);
+      background-color: var(--brand-button-hover-bg, #3a0066);
       color: var(--brand-button-hover-text, #ffffff);
       transform: translateY(-1px);
     }
 
     .home-button:focus-visible {
-      outline: 3px solid rgba(41, 171, 226, 0.35);
+      outline: 3px solid rgba(75, 0, 130, 0.35);
       outline-offset: 2px;
     }
 
@@ -172,13 +216,13 @@ body.scan-kiosk-page {
 
     .sidebar {
       width: clamp(300px, 28vw, 380px);
-      background: linear-gradient(180deg, var(--brand-primary, #29abe2) 0%, var(--brand-primary-dark, #1a8fc4) 100%);
+      background: linear-gradient(180deg, var(--brand-primary, #4b0082) 0%, var(--brand-primary-dark, #3a0066) 100%);
       color: #ffffff;
       padding: clamp(18px, 2vw, 28px);
       display: flex;
       flex-direction: column;
       align-items: center;
-      box-shadow: 8px 0 28px rgba(18, 90, 130, 0.16);
+      box-shadow: 8px 0 28px rgba(45, 0, 79, 0.16);
       z-index: 1;
     }
     .name-box{
@@ -192,7 +236,7 @@ body.scan-kiosk-page {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 16px 34px rgba(18, 90, 130, 0.18);
+      box-shadow: 0 16px 34px rgba(45, 0, 79, 0.18);
     }
 
     .sidebar .name-box .label,
@@ -233,7 +277,7 @@ body.scan-kiosk-page {
       justify-content: center;
       position: relative;
       border: 6px solid rgba(255, 255, 255, 0.55);
-      box-shadow: 0 16px 34px rgba(18, 90, 130, 0.22);
+      box-shadow: 0 16px 34px rgba(45, 0, 79, 0.22);
     }
 
     .profile-pic img {
@@ -267,7 +311,7 @@ body.scan-kiosk-page {
     .status-button {
       width: min(100%, 260px);
       font-size: clamp(1rem, 2vw, 1.55rem);
-      background: var(--brand-primary-darker, #125a82);
+      background: var(--brand-primary-darker, #2d004f);
       color: #ffffff;
       padding: 9px 18px;
       border-radius: 25px;
@@ -282,7 +326,7 @@ body.scan-kiosk-page {
 
     .right-content {
       flex: 1;
-      background: linear-gradient(135deg, #e8f4fc 0%, #f4f9fc 50%, #dceef8 100%);
+      background: linear-gradient(135deg, #e8f4fc 0%, #ffffff 50%, #dceef8 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -293,9 +337,9 @@ body.scan-kiosk-page {
     .right-content iframe {
       max-width: min(92%, 1180px);
       max-height: 78vh;
-      border: 3px solid var(--brand-primary, #29abe2);
+      border: 3px solid var(--brand-primary, #4b0082);
       border-radius: 18px;
-      box-shadow: 0 8px 32px rgba(41, 171, 226, 0.25);
+      box-shadow: 0 8px 32px rgba(75, 0, 130, 0.25);
       background: #ffffff;
     }
 
@@ -320,8 +364,8 @@ body.scan-kiosk-page {
       left: 0;
       width: 100%;
       height: 4px;
-      background: var(--brand-primary, #29abe2);
-      box-shadow: 0 0 8px rgba(41, 171, 226, 0.8);
+      background: var(--brand-primary, #4b0082);
+      box-shadow: 0 0 8px rgba(75, 0, 130, 0.8);
       animation: scanline 4s linear infinite;
     }
 
@@ -387,7 +431,7 @@ body.scan-kiosk-page {
       font-weight: 700;
       margin-bottom: 30px;
       font-size: 26px;
-      color: var(--brand-primary-darker, #125a82);
+      color: var(--brand-primary-darker, #2d004f);
       letter-spacing: 1px;
     }
     
@@ -440,7 +484,7 @@ body.scan-kiosk-page {
       line-height: 1.25;
       font-family: 'Poppins', sans-serif;
       cursor: pointer;
-      background: linear-gradient(135deg, var(--brand-button-bg, #29abe2), var(--brand-primary-dark, #1a8fc4));
+      background: linear-gradient(135deg, var(--brand-button-bg, #4b0082), var(--brand-primary-dark, #3a0066));
       color: white;
       transition: all 0.25s ease;
       box-shadow: 0 8px 20px rgba(0,0,0,0.15);
@@ -451,8 +495,8 @@ body.scan-kiosk-page {
     /* Hover effect */
     .section-buttons button:hover {
       transform: translateY(-6px);
-      box-shadow: 0 12px 25px rgba(41, 171, 226, 0.35);
-      background: linear-gradient(135deg, var(--brand-primary-dark, #1a8fc4), var(--brand-primary-darker, #125a82));
+      box-shadow: 0 12px 25px rgba(75, 0, 130, 0.35);
+      background: linear-gradient(135deg, var(--brand-primary-dark, #3a0066), var(--brand-primary-darker, #2d004f));
       color: #ffffff;
     }
     
@@ -498,7 +542,7 @@ body.scan-kiosk-page {
     
     .feedback-options button:hover {
       transform: translateY(-5px);
-      border-color: var(--brand-button-bg, #29abe2);
+      border-color: var(--brand-button-bg, #4b0082);
       background: #e3f4fc;
     }
     
@@ -639,7 +683,7 @@ body.scan-kiosk-page {
 }
 
 @keyframes sidebar-alarm-pulse {
-  0%, 100% { background-color: var(--brand-primary, #29abe2); }
+  0%, 100% { background-color: var(--brand-primary, #4b0082); }
   50% { background-color: #7f1d1d; }
 }
 
@@ -710,7 +754,7 @@ body.scan-kiosk-page {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--brand-primary-darker, #125a82);
+  background: var(--brand-primary-darker, #2d004f);
   overflow: hidden;
 }
 
@@ -744,7 +788,7 @@ body.scan-kiosk-page {
   margin-top: 6px;
   padding: 4px 20px;
   border-radius: 20px;
-  background: var(--brand-primary, #29abe2);
+  background: var(--brand-primary, #4b0082);
   color: #ffffff;
   font-size: clamp(0.8rem, 1.4vw, 1rem);
   font-weight: 700;
@@ -868,8 +912,8 @@ body.scan-kiosk-page {
     object-fit: cover;
     object-position: center;
     border-radius: 14px;
-    border: 3px solid var(--brand-primary, #29abe2);
-    box-shadow: 0 8px 32px rgba(41, 171, 226, 0.2);
+    border: 3px solid var(--brand-primary, #4b0082);
+    box-shadow: 0 8px 32px rgba(75, 0, 130, 0.2);
   }
   .ads-vid {
     display: block;
