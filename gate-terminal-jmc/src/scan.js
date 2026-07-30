@@ -137,13 +137,14 @@ function requireGate(settings) {
 
   if (allowed.length > 0) {
     const canonical = findCanonicalGate(gate, allowed);
-    if (!canonical) {
-      return { ok: false, message: 'Selected gate is no longer valid. Choose a gate again.' };
+    if (canonical) {
+      if (canonical !== gate) {
+        setSelectedGate(canonical);
+      }
+      return { ok: true, gate: canonical };
     }
-    if (canonical !== gate) {
-      setSelectedGate(canonical);
-    }
-    return { ok: true, gate: canonical };
+    // Sticky: keep scanning with the chosen gate even if admin renamed the list.
+    return { ok: true, gate };
   }
 
   return { ok: true, gate };

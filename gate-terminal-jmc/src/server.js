@@ -107,12 +107,13 @@ app.post('/api/gates/claim', async (req, res) => {
     return res.status(422).json({ ok: false, message: 'Gate is required.' });
   }
 
-  if (allowed.length > 0 && !allowed.includes(gate)) {
+  if (allowed.length > 0) {
     const canonical = findCanonicalGate(gate, allowed);
-    if (!canonical) {
-      return res.status(422).json({ ok: false, message: 'Invalid gate selected.' });
+    if (canonical) {
+      return claimAndRespond(canonical, res);
     }
-    return claimAndRespond(canonical, res);
+    // Sticky local claim: still accept the typed/remembered name so kiosks
+    // are not blocked when roster gate names drift slightly.
   }
 
   return claimAndRespond(gate, res);

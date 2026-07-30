@@ -64,11 +64,9 @@ async function pullRoster(config) {
     const gates = payload.settings.gate_terminals || [];
     if (selected && gates.length > 0) {
       const canonical = findCanonicalGate(selected, gates);
-      if (!canonical) {
-        // Gate was removed from admin list — force re-pick.
-        setSelectedGate(null);
-      } else if (canonical !== selected) {
+      if (canonical && canonical !== selected) {
         // Normalize whitespace/casing to the cloud name.
+        // Never clear on mismatch — kiosks keep their sticky local gate.
         setSelectedGate(canonical);
       }
     }

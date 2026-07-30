@@ -177,12 +177,22 @@ document.addEventListener('DOMContentLoaded', function () {
       const remembered = localStorage.getItem('gate_selected_gate');
       if (remembered) {
         await claimGate(remembered);
-        if (selectedGate) return;
+        // Trust the Node DB, not browser memory alone.
+        const check = await fetch('/api/status').then((r) => r.json()).catch(() => ({}));
+        if (check.selected_gate) {
+          rememberGate(check.selected_gate);
+          return;
+        }
       }
 
       openGateModal();
     } catch {
-      if (!selectedGate) openGateModal();
+      const status = await fetch('/api/status').then((r) => r.json()).catch(() => ({}));
+      if (status.selected_gate) {
+        rememberGate(status.selected_gate);
+        return;
+      }
+      openGateModal();
     }
   }
 
@@ -351,23 +361,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const token = String(rawToken || '').trim().replace(/\r/g, '');
     if (!token) return;
 
-    // Re-check server gate before blocking the scan (kiosks were losing in-memory vs DB sync).
-    if (!selectedGate) {
-      try {
-        const statusRes = await fetch('/api/status');
-        const statusData = await statusRes.json();
-        if (statusData.selected_gate) {
-          rememberGate(statusData.selected_gate);
+    // Always prefer Node DB as source of truth (browser memory can be stale).
+    try {
+      const statusRes = await fetch('/api/status');
+      const statusData = await statusRes.json();
+      if (statusData.selected_gate) {
+        rememberGate(statusData.selected_gate);
+      } else {
+        const remembered = localStorage.getItem('gate_selected_gate');
+        if (remembered) {
+          await claimGate(remembered);
+          const again = await fetch('/api/status').then((r) => r.json()).catch(() => ({}));
+          if (again.selected_gate) {
+            rememberGate(again.selected_gate);
+          } else {
+            rememberGate('');
+          }
+        } else {
+          rememberGate('');
         }
-      } catch (_) { /* ignore */ }
-    }
-
-    if (!selectedGate) {
-      const remembered = localStorage.getItem('gate_selected_gate');
-      if (remembered) {
-        await claimGate(remembered);
       }
-    }
+    } catch (_) { /* ignore */ }
 
     if (!selectedGate) {
       openGateModal();
