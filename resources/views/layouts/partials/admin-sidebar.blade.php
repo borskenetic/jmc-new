@@ -8,7 +8,7 @@
     if (config('face.enabled')) {
         $attendanceChildren[] = ['label' => 'Face Gate Terminal', 'route' => 'attendance.face', 'patterns' => ['attendance.face', 'attendance.face.identify'], 'icon' => 'scan', 'target' => '_blank'];
     }
-    $attendanceChildren[] = ['label' => 'Gates', 'route' => 'attendance.gate.settings', 'patterns' => ['attendance.gate.settings', 'attendance.gate.settings.update'], 'icon' => 'list'];
+    $attendanceChildren[] = ['label' => 'Offline Gate Devices', 'route' => 'gate_devices.index', 'patterns' => ['gate_devices.*'], 'icon' => 'settings'];
     $attendanceChildren[] = ['label' => 'Manage Video', 'route' => 'attendance.changeVideo', 'patterns' => ['attendance.changeVideo', 'attendance.uploadVideo'], 'icon' => 'settings'];
 
     $reportsChildren = [
@@ -28,7 +28,7 @@
         [
             'label'    => 'Attendance',
             'icon'     => 'calendar-check',
-            'patterns' => ['attendance.scan', 'attendance.face', 'attendance.face.identify', 'attendance.process', 'attendance.section', 'attendance.changeVideo', 'attendance.uploadVideo', 'attendance.gate.settings', 'attendance.gate.settings.update'],
+            'patterns' => ['attendance.scan', 'attendance.face', 'attendance.face.identify', 'attendance.process', 'attendance.section', 'attendance.changeVideo', 'attendance.uploadVideo', 'gate_devices.*'],
             'children' => $attendanceChildren,
         ],
         [

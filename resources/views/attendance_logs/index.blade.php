@@ -44,7 +44,6 @@
                 Gate Terminal
             </a>
             <a href="{{ route('attendance_logs.reports.hub') }}" class="al-btn al-btn--ghost">Reports</a>
-            <a href="{{ route('attendance.gate.settings') }}" class="al-btn al-btn--ghost">Gates</a>
             <div class="dropdown">
                 <button class="al-btn al-btn--ghost dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     Export

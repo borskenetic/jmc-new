@@ -11,6 +11,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeIdCardController;
 use App\Http\Controllers\FeedController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\GateDeviceController;
 use App\Http\Controllers\IdCardController;
 use App\Http\Controllers\PendingEmployeeController;
 use App\Http\Controllers\PendingStudentController;
@@ -91,8 +92,11 @@ Route::middleware(['auth', 'can:isAdminOrStaff'])->group(function () {
     Route::post('/attendance/upload-video', [AttendanceController::class, 'uploadVideo'])->name('attendance.uploadVideo');
     Route::get('/attendance/logout-feedback', [AttendanceController::class, 'feedbackSettings'])->name('attendance.feedback.settings');
     Route::post('/attendance/logout-feedback', [AttendanceController::class, 'updateFeedbackSettings'])->name('attendance.feedback.settings.update');
-    Route::get('/attendance/gates', [AttendanceController::class, 'gateSettings'])->name('attendance.gate.settings');
-    Route::post('/attendance/gates', [AttendanceController::class, 'updateGateSettings'])->name('attendance.gate.settings.update');
+
+    Route::get('/gate-devices', [GateDeviceController::class, 'index'])->name('gate_devices.index');
+    Route::post('/gate-devices', [GateDeviceController::class, 'store'])->name('gate_devices.store');
+    Route::put('/gate-devices/{gateDevice}', [GateDeviceController::class, 'update'])->name('gate_devices.update');
+    Route::delete('/gate-devices/{gateDevice}', [GateDeviceController::class, 'destroy'])->name('gate_devices.destroy');
 
     Route::get('/admin/feedbacks', [FeedController::class, 'index'])->name('feedback.index');
 

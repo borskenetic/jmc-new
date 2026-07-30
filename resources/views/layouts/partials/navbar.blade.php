@@ -18,7 +18,7 @@
         @auth
             @can('isAdminOrStaff')
                 <div class="nav-dropdown">
-                    <button type="button" class="nav-dropdown-button {{ $dropActive(['attendance.scan', 'attendance.face', 'attendance.process', 'attendance.section', 'attendance.changeVideo', 'attendance.uploadVideo', 'attendance.gate.settings', 'attendance.gate.settings.update']) }}">
+                    <button type="button" class="nav-dropdown-button {{ $dropActive(['attendance.scan', 'attendance.face', 'attendance.process', 'attendance.section', 'attendance.changeVideo', 'attendance.uploadVideo', 'gate_devices.*']) }}">
                         Attendance
                     </button>
                     <div class="nav-dropdown-content">
@@ -26,7 +26,7 @@
                         @if(config('face.enabled'))
                             <a href="{{ route('attendance.face') }}" target="_blank" rel="noopener" class="{{ $linkActive(['attendance.face']) }}">Face Gate Terminal</a>
                         @endif
-                        <a href="{{ route('attendance.gate.settings') }}" class="{{ $linkActive(['attendance.gate.settings', 'attendance.gate.settings.update']) }}">Gates</a>
+                        <a href="{{ route('gate_devices.index') }}" class="{{ $linkActive(['gate_devices.*']) }}">Offline Gate Devices</a>
                         <a href="{{ route('attendance.changeVideo') }}" class="{{ $linkActive(['attendance.changeVideo', 'attendance.uploadVideo']) }}">Manage Video</a>
                     </div>
                 </div>

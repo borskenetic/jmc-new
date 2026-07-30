@@ -259,20 +259,12 @@ class AttendanceController extends Controller
         ];
     }
 
-    public function processSection(Request $request, GateTerminalService $gateTerminalService)
+    public function processSection(Request $request)
     {
         $request->validate([
             'student_id' => 'required|integer|exists:students,id',
             'section' => 'nullable|string|max:255',
-            'gate' => 'required|string|max:120',
         ]);
-
-        $gate = $gateTerminalService->validateGateForScan($request->input('gate'));
-        if ($gate === null) {
-            return response()->json([
-                'message' => 'Select a valid gate on this terminal before scanning.',
-            ], 422);
-        }
 
         $section = $request->section ? trim((string) $request->section) : null;
         if ($section !== null && $section !== '') {
@@ -306,7 +298,7 @@ class AttendanceController extends Controller
         $log = AttendanceLog::create([
             'student_id' => $student->id,
             'section' => $section,
-            'gate' => $gate,
+            'gate' => null,
             'status' => $newStatus,
             'scanned_at' => now(),
         ]);
@@ -320,19 +312,11 @@ class AttendanceController extends Controller
         ]);
     }
 
-    public function processVisitor(Request $request, GateTerminalService $gateTerminalService)
+    public function processVisitor(Request $request)
     {
         $request->validate([
             'visitor_id' => 'required|integer|exists:visitors,id',
-            'gate' => 'required|string|max:120',
         ]);
-
-        $gate = $gateTerminalService->validateGateForScan($request->input('gate'));
-        if ($gate === null) {
-            return response()->json([
-                'message' => 'Select a valid gate on this terminal before scanning.',
-            ], 422);
-        }
 
         $visitor = Visitor::findOrFail($request->visitor_id);
         $sessions = app(AttendanceSessionService::class);
@@ -348,7 +332,7 @@ class AttendanceController extends Controller
         $log = VisitorLog::create([
             'visitor_id' => $visitor->id,
             'status' => $newStatus,
-            'gate' => $gate,
+            'gate' => null,
             'scanned_at' => now(),
         ]);
 

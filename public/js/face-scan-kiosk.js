@@ -130,7 +130,6 @@
   }
 
   function processSection(section) {
-    const gatePayload = window.GateTerminalKiosk ? window.GateTerminalKiosk.payload() : {};
     return fetch(cfg.sectionUrl, {
       method: 'POST',
       headers: {
@@ -138,7 +137,7 @@
         'X-CSRF-TOKEN': cfg.csrf,
         Accept: 'application/json',
       },
-      body: JSON.stringify({ student_id: currentStudentId, section: section, ...gatePayload }),
+      body: JSON.stringify({ student_id: currentStudentId, section: section }),
     });
   }
 
@@ -219,12 +218,6 @@
     if (isCooldown || now - lastSentAt < 2500) return;
     if (sectionModal && sectionModal.style.display === 'flex') return;
     if (feedbackModal && feedbackModal.style.display === 'flex') return;
-    const gateModal = document.getElementById('gateTerminalModal');
-    if (gateModal && gateModal.style.display === 'flex') return;
-    if (!window.GateTerminalKiosk || !window.GateTerminalKiosk.getGate()) {
-      window.GateTerminalKiosk?.openModal();
-      return;
-    }
 
     const descriptor = await FaceApiHelper.getDescriptorFromVideo(video);
     if (!descriptor) {

@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div>
             <h3 class="mb-1">Offline gate devices</h3>
-            <p class="text-muted mb-0 small">Register gate PCs that run the local terminal app and sync attendance when online. Online browser kiosks still use Attendance → Gates.</p>
+            <p class="text-muted mb-0 small">Register gate PCs that run the local terminal app and sync attendance when online.</p>
         </div>
         <a href="{{ route('attendance.scan') }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">Online gate terminal</a>
     </div>
@@ -112,8 +112,6 @@
             <ul class="mb-0">
                 <li><code>GET {{ url('/api/gate/health') }}</code></li>
                 <li><code>GET {{ url('/api/gate/roster') }}?since=ISO8601</code></li>
-                <li><code>GET {{ url('/api/gate/gates') }}</code></li>
-                <li><code>POST {{ url('/api/gate/gates/claim') }}</code></li>
                 <li><code>POST {{ url('/api/gate/attendance') }}</code></li>
             </ul>
         </div>
