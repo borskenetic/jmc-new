@@ -20,16 +20,47 @@ return new class extends Migration
             });
         }
 
+        if (Schema::hasTable('attendance_logs') && ! Schema::hasColumn('attendance_logs', 'section')) {
+            $sectionAfter = Schema::hasColumn('attendance_logs', 'status') ? 'status' : null;
+
+            Schema::table('attendance_logs', function (Blueprint $table) use ($sectionAfter) {
+                if ($sectionAfter) {
+                    $table->string('section')->nullable()->after($sectionAfter);
+                } else {
+                    $table->string('section')->nullable();
+                }
+            });
+        }
+
         if (Schema::hasTable('attendance_logs') && ! Schema::hasColumn('attendance_logs', 'gate')) {
-            Schema::table('attendance_logs', function (Blueprint $table) {
-                $table->string('gate', 120)->nullable()->after('section');
+            $afterColumn = null;
+            if (Schema::hasColumn('attendance_logs', 'section')) {
+                $afterColumn = 'section';
+            } elseif (Schema::hasColumn('attendance_logs', 'scanned_at')) {
+                $afterColumn = 'scanned_at';
+            } elseif (Schema::hasColumn('attendance_logs', 'status')) {
+                $afterColumn = 'status';
+            }
+
+            Schema::table('attendance_logs', function (Blueprint $table) use ($afterColumn) {
+                if ($afterColumn) {
+                    $table->string('gate', 120)->nullable()->after($afterColumn);
+                } else {
+                    $table->string('gate', 120)->nullable();
+                }
                 $table->index('gate');
             });
         }
 
         if (Schema::hasTable('visitor_logs') && ! Schema::hasColumn('visitor_logs', 'gate')) {
-            Schema::table('visitor_logs', function (Blueprint $table) {
-                $table->string('gate', 120)->nullable()->after('status');
+            $visitorAfter = Schema::hasColumn('visitor_logs', 'status') ? 'status' : null;
+
+            Schema::table('visitor_logs', function (Blueprint $table) use ($visitorAfter) {
+                if ($visitorAfter) {
+                    $table->string('gate', 120)->nullable()->after($visitorAfter);
+                } else {
+                    $table->string('gate', 120)->nullable();
+                }
                 $table->index('gate');
             });
         }
