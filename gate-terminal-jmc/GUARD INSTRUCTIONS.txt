@@ -1,0 +1,52 @@
+================================================================================
+  JMC LIBRARY GATE — Instructions for guards
+================================================================================
+
+STARTING YOUR SHIFT
+-------------------
+1. Double-click:  Start Gate.bat
+2. Wait a few seconds. A scan screen will open automatically.
+3. If asked "Which gate is this terminal?", pick your gate (Main Gate, etc.).
+4. A black window titled "JMC Gate Server — DO NOT CLOSE" will also open.
+   → Minimize it (do not close it). The gate stops working if you close it.
+
+SCANNING STUDENTS
+-----------------
+• Students tap their ID card on the scanner as usual.
+• The screen will show their name and IN or OUT.
+• A green badge at the top means connected to the server.
+• A yellow badge means offline — scans still work; they upload when internet returns.
+• The header shows which gate this PC is using. Use "Change" if needed.
+
+VISITORS
+--------
+• Visitors CANNOT use this offline gate.
+• For visitors, use the school's normal online attendance page.
+
+IF THE SCREEN SAYS "ID NOT RECOGNIZED"
+--------------------------------------
+• Ask the student to try again.
+• If internet is down, very new students may not be on the list yet.
+• Call IT if it keeps happening.
+
+END OF SHIFT
+------------
+• Close the scan window (the big screen).
+• You may leave the black server window running overnight, OR
+• Ask IT to use "Stop Gate.bat" if the PC must be shut down.
+
+NEVER DO THIS
+-------------
+× Do not close the black "DO NOT CLOSE" server window during duty hours
+× Do not delete the gate-terminal folder
+× Do not edit config.json unless IT tells you to
+
+NEED HELP?
+----------
+Contact IT / library admin. Tell them:
+  - What the yellow/green badge says
+  - Which gate is selected
+  - Whether the black server window is still open
+  - Any error message on screen
+
+================================================================================
