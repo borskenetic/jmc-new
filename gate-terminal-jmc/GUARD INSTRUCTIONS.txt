@@ -6,10 +6,9 @@ STARTING YOUR SHIFT
 -------------------
 1. Double-click:  Start Gate.bat
 2. Wait a few seconds. A scan screen will open automatically FULL SCREEN.
-3. If asked "Which gate is this terminal?", pick your gate (Main Gate, etc.).
-4. A black window titled "JMC Gate Server — DO NOT CLOSE" will also open.
+3. A black window titled "JMC Gate Server — DO NOT CLOSE" will also open.
    → Minimize it (do not close it). The gate stops working if you close it.
-5. If the scan screen is NOT full screen: press F11, or close it and run Start Gate.bat again.
+4. If the scan screen is NOT full screen: press F11, or close it and run Start Gate.bat again.
    (IT: Edge/Chrome must be installed. The launcher uses real --kiosk mode.)
 
 SCANNING STUDENTS
@@ -18,7 +17,6 @@ SCANNING STUDENTS
 • The screen will show their name and IN or OUT.
 • A green badge at the top means connected to the server.
 • A yellow badge means offline — scans still work; they upload when internet returns.
-• The header shows which gate this PC is using. Use "Change" if needed.
 
 VISITORS
 --------
@@ -47,7 +45,6 @@ NEED HELP?
 ----------
 Contact IT / library admin. Tell them:
   - What the yellow/green badge says
-  - Which gate is selected
   - Whether the black server window is still open
   - Any error message on screen
 

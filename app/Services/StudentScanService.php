@@ -150,10 +150,9 @@ class StudentScanService
             $section = null;
         }
 
-        $gate = $this->gates->validateGateForScan($gate);
-        if ($gate === null) {
-            throw new \InvalidArgumentException('Select a valid gate on this terminal before scanning.');
-        }
+        // Offline kiosks no longer require a gate picker; store device name when blank.
+        $validatedGate = $this->gates->validateGateForScan($gate);
+        $gate = $validatedGate ?? (trim((string) $gate) !== '' ? trim((string) $gate) : $gateDevice->name);
 
         $status = strtoupper(trim($status));
         if (! in_array($status, ['IN', 'OUT'], true)) {

@@ -6,12 +6,8 @@ const {
   getSyncState,
   countPending,
   db,
-  getSelectedGate,
-  setSelectedGate,
-  findCanonicalGate,
-  getSettings,
 } = require('./db');
-const { loadConfig, runSyncCycle, fetchAvailableGates, refreshGateClaim } = require('./sync');
+const { loadConfig, runSyncCycle } = require('./sync');
 
 const config = loadConfig();
 const app = express();
@@ -69,75 +65,8 @@ app.get('/api/status', (_req, res) => {
     last_sync_at: state.updated_at,
     cloud_url: config.cloud_url || '',
     app_name: config.app_name || 'JMC Library',
-    selected_gate: getSelectedGate(),
   });
 });
-
-app.get('/api/gates', async (_req, res) => {
-  const settings = getSettings();
-  const localGates = settings.gate_terminals || [];
-  const selected = getSelectedGate();
-
-  try {
-    const remote = await fetchAvailableGates(config);
-    // Always offer the full gate list — kiosks may switch freely.
-    const all = remote.all_gates || localGates;
-    res.json({
-      gates: all,
-      all_gates: all,
-      current_gate: selected || remote.current_gate || null,
-      offline: Boolean(remote.offline),
-    });
-  } catch {
-    res.json({
-      gates: localGates,
-      all_gates: localGates,
-      current_gate: selected,
-      offline: true,
-    });
-  }
-});
-
-app.post('/api/gates/claim', async (req, res) => {
-  const gate = String(req.body?.gate || '').trim();
-  const settings = getSettings();
-  const allowed = settings.gate_terminals || [];
-
-  if (!gate) {
-    return res.status(422).json({ ok: false, message: 'Gate is required.' });
-  }
-
-  if (allowed.length > 0) {
-    const canonical = findCanonicalGate(gate, allowed);
-    if (canonical) {
-      return claimAndRespond(canonical, res);
-    }
-    // Sticky local claim: still accept the typed/remembered name so kiosks
-    // are not blocked when roster gate names drift slightly.
-  }
-
-  return claimAndRespond(gate, res);
-});
-
-async function claimAndRespond(gate, res) {
-  // Always persist locally first so scanning works even if cloud occupancy fails.
-  setSelectedGate(gate);
-
-  const state = getSyncState();
-  if (state.online) {
-    const claim = await refreshGateClaim(config);
-    if (claim && claim.ok === false) {
-      // Keep local gate. Occupancy conflict should not block this kiosk from scanning.
-      return res.json({
-        ok: true,
-        gate,
-        warning: claim.message || 'Gate may be in use on another terminal; scans will still use this gate.',
-      });
-    }
-  }
-
-  return res.json({ ok: true, gate });
-}
 
 app.get('/api/test/students', (_req, res) => {
   const rows = db.prepare(`

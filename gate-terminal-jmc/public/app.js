@@ -14,13 +14,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const testManualInput = document.getElementById('testManualInput');
   const testScanBtn = document.getElementById('testScanBtn');
   const gateVideo = document.getElementById('gateVideo');
-  const gateModal = document.getElementById('gateTerminalModal');
-  const gateButtons = document.getElementById('gateTerminalButtons');
-  const gateEmpty = document.getElementById('gateTerminalEmpty');
-  const gateLoading = document.getElementById('gateTerminalLoading');
-  const gateBadge = document.getElementById('gateTerminalBadge');
-  const gateLabel = document.getElementById('gateTerminalLabel');
-  const gateChange = document.getElementById('gateTerminalChange');
 
   let selectedStudent = null;
   let currentScanToken = null;
@@ -28,21 +21,10 @@ document.addEventListener('DOMContentLoaded', function () {
   let isCooldown = false;
   let cloudUrl = '';
   let appName = 'Jose Maria College';
-  let selectedGate = localStorage.getItem('gate_selected_gate') || '';
-  let gateSettings = {
+  let scanSettings = {
     section_picker_enabled: false,
     attendance_sections: [],
   };
-
-  function rememberGate(gate) {
-    selectedGate = gate || '';
-    if (selectedGate) {
-      localStorage.setItem('gate_selected_gate', selectedGate);
-    } else {
-      localStorage.removeItem('gate_selected_gate');
-    }
-    updateGateBadge();
-  }
 
   const params = new URLSearchParams(window.location.search);
   let testMode = params.get('test') === '1' || localStorage.getItem('gate_test_mode') === '1';
@@ -64,7 +46,6 @@ document.addEventListener('DOMContentLoaded', function () {
   setTestMode(testMode);
 
   setInterval(() => {
-    if (gateModal && gateModal.style.display === 'flex') return;
     if (sectionModal && sectionModal.style.display === 'flex') return;
     input.focus();
   }, 100);
@@ -78,137 +59,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  function updateGateBadge() {
-    if (!gateBadge || !gateLabel) return;
-    if (!selectedGate) {
-      gateBadge.hidden = true;
-      return;
-    }
-    gateLabel.textContent = selectedGate;
-    gateBadge.hidden = false;
-  }
-
-  function openGateModal() {
-    if (!gateModal) return;
-    gateModal.style.display = 'flex';
-    gateModal.setAttribute('aria-hidden', 'false');
-    refreshGateButtons();
-  }
-
-  function closeGateModal() {
-    if (!gateModal) return;
-    gateModal.style.display = 'none';
-    gateModal.setAttribute('aria-hidden', 'true');
-  }
-
-  async function refreshGateButtons() {
-    if (gateLoading) gateLoading.hidden = false;
-    if (gateEmpty) gateEmpty.hidden = true;
-    if (gateButtons) gateButtons.innerHTML = '';
-
-    try {
-      const res = await fetch('/api/gates');
-      const data = await res.json();
-      const gates = data.gates || data.all_gates || [];
-      if (data.current_gate) rememberGate(data.current_gate);
-      else updateGateBadge();
-
-      if (!gates.length) {
-        if (gateEmpty) gateEmpty.hidden = false;
-        return;
-      }
-
-      gates.forEach((gate) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.dataset.gate = gate;
-        btn.textContent = gate === selectedGate ? `${gate} ✓` : gate;
-        if (gate === selectedGate) {
-          btn.classList.add('gate-terminal-btn--current');
-        }
-        btn.addEventListener('click', () => claimGate(gate));
-        gateButtons.appendChild(btn);
-      });
-    } catch {
-      if (gateEmpty) {
-        gateEmpty.textContent = 'Could not load gates. Sync when online.';
-        gateEmpty.hidden = false;
-      }
-    } finally {
-      if (gateLoading) gateLoading.hidden = true;
-    }
-  }
-
-  async function claimGate(gate) {
-    try {
-      const res = await fetch('/api/gates/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ gate }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        alert(data.message || 'Could not select that gate.');
-        await refreshGateButtons();
-        return;
-      }
-      rememberGate(data.gate);
-      if (data.warning) {
-        console.warn(data.warning);
-      }
-      closeGateModal();
-      input.focus();
-    } catch (err) {
-      console.error(err);
-      alert('Could not select that gate.');
-    }
-  }
-
-  async function ensureGateSelected() {
-    try {
-      const res = await fetch('/api/status');
-      const data = await res.json();
-      if (data.selected_gate) {
-        rememberGate(data.selected_gate);
-        return;
-      }
-
-      // DB empty but browser remembers last gate — re-claim silently.
-      const remembered = localStorage.getItem('gate_selected_gate');
-      if (remembered) {
-        await claimGate(remembered);
-        // Trust the Node DB, not browser memory alone.
-        const check = await fetch('/api/status').then((r) => r.json()).catch(() => ({}));
-        if (check.selected_gate) {
-          rememberGate(check.selected_gate);
-          return;
-        }
-      }
-
-      openGateModal();
-    } catch {
-      const status = await fetch('/api/status').then((r) => r.json()).catch(() => ({}));
-      if (status.selected_gate) {
-        rememberGate(status.selected_gate);
-        return;
-      }
-      openGateModal();
-    }
-  }
-
-  gateChange?.addEventListener('click', () => openGateModal());
-
   async function refreshStatus() {
     try {
       const res = await fetch('/api/status');
       const data = await res.json();
       cloudUrl = data.cloud_url || '';
       appName = data.app_name || appName;
-      if (data.selected_gate) {
-        rememberGate(data.selected_gate);
-      } else {
-        updateGateBadge();
-      }
       const footer = document.getElementById('footerAppName');
       if (footer) footer.textContent = `Welcome to ${appName}`;
 
@@ -231,7 +87,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   refreshStatus();
   setInterval(refreshStatus, 15000);
-  ensureGateSelected();
 
   async function loadTestStudents() {
     try {
@@ -259,19 +114,9 @@ document.addEventListener('DOMContentLoaded', function () {
     return `/media/${clean}`;
   }
 
-  function showDividerName() {
-    /* USM-style layout: name lives in the sidebar card only */
-  }
-
-  function hideDividerName() {
-    const display = document.getElementById('scanNameDisplay');
-    if (display) display.hidden = true;
-  }
-
   function clearDisplay() {
     profileImg.src = '/images/2x2_undifined_gender.jpg';
     document.querySelectorAll('.name-box').forEach((box) => box.remove());
-    hideDividerName();
     hideEarlyOutAlarm();
     selectedStudent = null;
     currentScanToken = null;
@@ -312,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
     sidebar.appendChild(div);
 
     earlyOutAlarm.hidden = false;
-    scanSidebar?.classList.add('sidebar--alarm');
+    sidebar?.classList.add('sidebar--alarm');
     playAlarmSound();
     scheduleClear(8000);
   }
@@ -326,14 +171,14 @@ document.addEventListener('DOMContentLoaded', function () {
       <div class="status-button status-blocked">UNKNOWN</div>
     `;
     sidebar.appendChild(div);
-    scanSidebar?.classList.add('sidebar--alarm');
+    sidebar?.classList.add('sidebar--alarm');
     playAlarmSound();
     scheduleClear(4000);
   }
 
   function hideEarlyOutAlarm() {
     earlyOutAlarm?.setAttribute('hidden', '');
-    scanSidebar?.classList.remove('sidebar--alarm');
+    sidebar?.classList.remove('sidebar--alarm');
   }
 
   function scheduleClear(delayMs) {
@@ -361,33 +206,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const token = String(rawToken || '').trim().replace(/\r/g, '');
     if (!token) return;
 
-    // Always prefer Node DB as source of truth (browser memory can be stale).
-    try {
-      const statusRes = await fetch('/api/status');
-      const statusData = await statusRes.json();
-      if (statusData.selected_gate) {
-        rememberGate(statusData.selected_gate);
-      } else {
-        const remembered = localStorage.getItem('gate_selected_gate');
-        if (remembered) {
-          await claimGate(remembered);
-          const again = await fetch('/api/status').then((r) => r.json()).catch(() => ({}));
-          if (again.selected_gate) {
-            rememberGate(again.selected_gate);
-          } else {
-            rememberGate('');
-          }
-        } else {
-          rememberGate('');
-        }
-      }
-    } catch (_) { /* ignore */ }
-
-    if (!selectedGate) {
-      openGateModal();
-      return;
-    }
-
     if (isCooldown) return;
     isCooldown = true;
     setTimeout(() => { isCooldown = false; }, 300);
@@ -412,8 +230,8 @@ document.addEventListener('DOMContentLoaded', function () {
         currentScanToken = token;
         profileImg.src = profileUrl(data.student.profile_picture);
 
-        gateSettings.section_picker_enabled = data.section_picker_enabled;
-        gateSettings.attendance_sections = data.attendance_sections || [];
+        scanSettings.section_picker_enabled = data.section_picker_enabled;
+        scanSettings.attendance_sections = data.attendance_sections || [];
 
         if (data.next_status === 'OUT') {
           try {
@@ -427,7 +245,6 @@ document.addEventListener('DOMContentLoaded', function () {
               <div class="timestamp">${response.scanned_at}</div>
             `;
             sidebar.appendChild(div);
-            showDividerName(`${selectedStudent.firstname} ${selectedStudent.lastname}`, 'OUT', response.scanned_at, true);
             scheduleClear(2000);
           } catch (err) {
             if (err.status === 403) {
@@ -436,37 +253,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 allowed_after: err.data?.allowed_after,
                 student: selectedStudent,
               });
-            } else if (String(err.message || '').toLowerCase().includes('gate')) {
-              // Try one silent re-claim of the remembered gate before prompting.
-              const remembered = localStorage.getItem('gate_selected_gate') || selectedGate;
-              if (remembered) {
-                await claimGate(remembered);
-                if (selectedGate) {
-                  try {
-                    const response = await recordScan(token, null);
-                    const div = document.createElement('div');
-                    div.classList.add('name-box', 'scan-result-box');
-                    div.innerHTML = `
-                      <div class="student-name">${selectedStudent.firstname} ${selectedStudent.lastname}</div>
-                      <div class="label">Name</div>
-                      <div class="status-button status-out">OUT</div>
-                      <div class="timestamp">${response.scanned_at}</div>
-                    `;
-                    sidebar.appendChild(div);
-                    scheduleClear(2000);
-                    return;
-                  } catch (_) { /* fall through */ }
-                }
-              }
-              openGateModal();
+            } else {
+              showUnknownScanAlarm(err.message || 'Scan failed. Try again.');
             }
           }
         } else {
-          const sectionPickerOn = data.section_picker_enabled && gateSettings.attendance_sections.length > 0;
+          const sectionPickerOn = data.section_picker_enabled && scanSettings.attendance_sections.length > 0;
           if (sectionPickerOn) {
             sectionButtons.innerHTML = '';
-            sectionButtons.dataset.count = String(gateSettings.attendance_sections.length);
-            gateSettings.attendance_sections.forEach((section) => {
+            sectionButtons.dataset.count = String(scanSettings.attendance_sections.length);
+            scanSettings.attendance_sections.forEach((section) => {
               const btn = document.createElement('button');
               btn.type = 'button';
               btn.dataset.section = section;
@@ -487,17 +283,11 @@ document.addEventListener('DOMContentLoaded', function () {
               <div class="timestamp">${response.scanned_at}</div>
             `;
             sidebar.appendChild(div);
-            showDividerName(`${selectedStudent.firstname} ${selectedStudent.lastname}`, response.status, response.scanned_at, false);
             scheduleClear(3000);
           }
         }
 
         refreshStatus();
-        return;
-      }
-
-      if (String(data.message || '').toLowerCase().includes('gate')) {
-        openGateModal();
         return;
       }
 
@@ -525,14 +315,11 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="timestamp">${response.scanned_at}</div>
       `;
       sidebar.appendChild(div);
-      showDividerName(`${selectedStudent.firstname} ${selectedStudent.lastname}`, response.status, response.scanned_at, false);
       scheduleClear(3000);
       refreshStatus();
     } catch (err) {
       console.error(err);
-      if (String(err.message || '').toLowerCase().includes('gate')) {
-        openGateModal();
-      }
+      showUnknownScanAlarm(err.message || 'Scan failed. Try again.');
     }
   }
 

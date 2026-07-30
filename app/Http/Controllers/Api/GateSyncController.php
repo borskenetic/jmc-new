@@ -100,7 +100,7 @@ class GateSyncController extends Controller
             'scans.*.scan_token' => 'required|string|max:500',
             'scans.*.status' => 'required|in:IN,OUT,in,out',
             'scans.*.section' => 'nullable|string|max:255',
-            'scans.*.gate' => 'required|string|max:120',
+            'scans.*.gate' => 'nullable|string|max:120',
             'scans.*.scanned_at' => 'required|date',
         ]);
 

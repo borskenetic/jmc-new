@@ -6,9 +6,6 @@ const {
   insertLocalLog,
   countPending,
   setSyncState,
-  getSelectedGate,
-  setSelectedGate,
-  findCanonicalGate,
 } = require('./db');
 
 const TZ = 'Asia/Manila';
@@ -127,35 +124,8 @@ function studentPayload(student) {
   };
 }
 
-function requireGate(settings) {
-  const gate = getSelectedGate();
-  const allowed = settings.gate_terminals || [];
-
-  if (!gate) {
-    return { ok: false, message: 'Select a gate on this terminal before scanning.' };
-  }
-
-  if (allowed.length > 0) {
-    const canonical = findCanonicalGate(gate, allowed);
-    if (canonical) {
-      if (canonical !== gate) {
-        setSelectedGate(canonical);
-      }
-      return { ok: true, gate: canonical };
-    }
-    // Sticky: keep scanning with the chosen gate even if admin renamed the list.
-    return { ok: true, gate };
-  }
-
-  return { ok: true, gate };
-}
-
 function previewScan(rawToken) {
   const settings = getSettings();
-  const gateCheck = requireGate(settings);
-  if (!gateCheck.ok) {
-    return { type: 'error', message: gateCheck.message };
-  }
 
   let student = findStudentByToken(rawToken);
 
@@ -188,7 +158,6 @@ function previewScan(rawToken) {
     type: 'student',
     next_status: nextStatus,
     student_id: student.cloud_id,
-    gate: gateCheck.gate,
     section_picker_enabled: Boolean(settings.section_picker_enabled),
     logout_feedback_enabled: Boolean(settings.logout_feedback_enabled),
     student: studentPayload(student),
@@ -215,7 +184,6 @@ function recordScan(rawToken, section = null) {
   const status = preview.next_status;
   const scannedAt = manilaLocalIso();
   const clientUuid = uuidv4();
-  const gate = preview.gate;
 
   insertLocalLog({
     client_uuid: clientUuid,
@@ -223,7 +191,7 @@ function recordScan(rawToken, section = null) {
     scan_token: String(rawToken).trim().replace(/\r/g, ''),
     status,
     section: section || null,
-    gate,
+    gate: null,
     scanned_at: scannedAt,
   });
 
@@ -234,7 +202,6 @@ function recordScan(rawToken, section = null) {
     status,
     scanned_at: formatDisplayTime(scannedAt),
     client_uuid: clientUuid,
-    gate,
     logout_feedback_enabled: Boolean(settings.logout_feedback_enabled),
   };
 }

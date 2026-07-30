@@ -9,10 +9,6 @@ const {
   markSynced,
   countPending,
   applyRemoteLog,
-  getSelectedGate,
-  setSelectedGate,
-  findCanonicalGate,
-  getSettings,
 } = require('./db');
 
 function loadConfig() {
@@ -59,17 +55,6 @@ async function pullRoster(config) {
 
   if (payload.settings) {
     saveSettings(payload.settings);
-
-    const selected = getSelectedGate();
-    const gates = payload.settings.gate_terminals || [];
-    if (selected && gates.length > 0) {
-      const canonical = findCanonicalGate(selected, gates);
-      if (canonical && canonical !== selected) {
-        // Normalize whitespace/casing to the cloud name.
-        // Never clear on mismatch — kiosks keep their sticky local gate.
-        setSelectedGate(canonical);
-      }
-    }
   }
 
   for (const student of payload.students || []) {
@@ -104,7 +89,7 @@ async function pushAttendance(config) {
       scan_token: row.scan_token,
       status: row.status,
       section: row.section,
-      gate: row.gate,
+      gate: row.gate || null,
       scanned_at: row.scanned_at,
     })),
   };
@@ -140,43 +125,10 @@ async function checkHealth(config) {
   return true;
 }
 
-async function refreshGateClaim(config) {
-  const gate = getSelectedGate();
-  if (!gate) return null;
-
-  try {
-    const result = await cloudFetch(config, '/gates/claim', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gate }),
-    });
-    // Keep local selection even if cloud occupancy is contested.
-    return result;
-  } catch (error) {
-    // Do NOT clear selected_gate — kiosks must keep scanning with their chosen gate.
-    return { ok: false, message: error.message, keep_local: true };
-  }
-}
-
-async function fetchAvailableGates(config) {
-  try {
-    return await cloudFetch(config, '/gates');
-  } catch {
-    const settings = getSettings();
-    return {
-      gates: settings.gate_terminals || [],
-      all_gates: settings.gate_terminals || [],
-      current_gate: getSelectedGate(),
-      offline: true,
-    };
-  }
-}
-
 async function runSyncCycle(config) {
   try {
     await checkHealth(config);
     await pullRoster(config);
-    await refreshGateClaim(config);
     const push = await pushAttendance(config);
     return { ok: true, push };
   } catch (error) {
@@ -191,8 +143,5 @@ module.exports = {
   pullRoster,
   pushAttendance,
   checkHealth,
-  refreshGateClaim,
-  fetchAvailableGates,
   cloudFetch,
-  findCanonicalGate,
 };

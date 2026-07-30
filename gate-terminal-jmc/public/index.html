@@ -17,11 +17,6 @@
     <div class="logo-title">
       <img src="/images/pantasLogo.png" alt="Logo" onerror="this.src='/images/d.png'; this.onerror=null;">
       <div class="system-title">POWERED BY PANTAS</div>
-      <div class="gate-terminal-badge" id="gateTerminalBadge" hidden>
-        <span class="gate-terminal-badge__label">Gate:</span>
-        <strong id="gateTerminalLabel"></strong>
-        <button type="button" class="gate-terminal-badge__change" id="gateTerminalChange">Change</button>
-      </div>
     </div>
   </div>
 </header>
@@ -64,16 +59,6 @@
     </div>
   </div>
 </footer>
-
-<div id="gateTerminalModal" class="section-modal gate-terminal-modal" aria-hidden="true" style="display:none;">
-  <div class="modal-content section-picker-modal">
-    <h2>Which gate is this terminal?</h2>
-    <p class="gate-terminal-modal__hint">Pick any gate. You can change it anytime with the Change button.</p>
-    <div class="section-buttons gate-terminal-buttons" id="gateTerminalButtons"></div>
-    <p class="section-empty-msg" id="gateTerminalEmpty" hidden>No gates configured. Sync when online, or ask admin to add gates.</p>
-    <p class="gate-terminal-modal__loading" id="gateTerminalLoading" hidden>Loading gates…</p>
-  </div>
-</div>
 
 <div id="sectionModal" class="section-modal" aria-hidden="true" style="display:none;">
   <div class="modal-content section-picker-modal">
