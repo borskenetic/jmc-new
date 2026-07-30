@@ -3,7 +3,11 @@
 return [
 
     /*
-    | Year level options keyed by educational_level (see App\Enums\EducationalLevel).
+    | Year / grade options keyed by educational_level (K–12 + college).
+    | Grade school: Kinder 1–2, Grade 1–6
+    | Junior high: Grade 7–10
+    | Senior high: Grade 11–12
+    | College: 1st–6th Year
     */
     'senior_high_grades' => ['Grade 11', 'Grade 12'],
 

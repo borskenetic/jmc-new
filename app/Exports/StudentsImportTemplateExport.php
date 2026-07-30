@@ -28,17 +28,17 @@ class StudentsImportTemplateExport implements FromArray, WithHeadings
     {
         return [
             [
-                '2024-00001',
-                'Dela Cruz',
-                'Juan M',
-                'Grade 7',
-                '123456789012',
-                '2004-03-15',
-                'Maria Dela Cruz',
-                '09171234567',
-                '123 Main St, Davao City',
-                '2024-00001.jpg',
-                '',
+                '30168',
+                'Agahan',
+                'Steve Rion D.',
+                'Kinder 1',
+                'N/A',
+                'DECEMBER 21, 2021',
+                'Desiree de la Serna',
+                '0943-068-9307',
+                'Laverna Hills, Davao City',
+                '30168.jpg',
+                '3026958322',
             ],
         ];
     }

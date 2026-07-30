@@ -43,6 +43,7 @@ class Student extends Model
     {
         return [
             'educational_level' => EducationalLevel::class,
+            'birth_date' => 'date',
             'face_descriptor' => 'array',
             'face_enrolled_at' => 'datetime',
         ];

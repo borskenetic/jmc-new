@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Console\Commands\NormalizeStudentNames;
 use App\Enums\EducationalLevel;
 use App\Models\Student;
+use App\Support\PatronOptions;
 use App\Support\ProfilePicture;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
@@ -113,22 +114,28 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         string $midname,
         string $lastname,
     ): array {
-        $gradeLevel = $this->value($row, ['year', 'grade_level']);
+        $gradeLevel = PatronOptions::normalizeYearLabel(
+            $this->value($row, ['year', 'grade_level'])
+        ) ?? '';
         $educationalLevel = $this->value($row, ['educational_level']);
         if ($educationalLevel === '' && $gradeLevel !== '') {
-            $educationalLevel = $this->educationalLevelForGrade($gradeLevel) ?? '';
+            $educationalLevel = PatronOptions::educationalLevelForYear($gradeLevel) ?? '';
         }
 
         if ($educationalLevel !== '' && ! in_array($educationalLevel, EducationalLevel::values(), true)) {
             $educationalLevel = '';
         }
 
+        $lrn = $this->nullableText($this->value($row, ['lrn']));
+        $address = $this->nullableText($this->value($row, ['address', 'home_address']));
+        $emergencyAddress = $this->nullableText($this->value($row, ['emergency_address']));
+
         $data = [
             'student_id' => $studentId,
             'firstname' => $firstname,
             'lastname' => $lastname,
             'midname' => $midname !== '' ? $midname : null,
-            'lrn' => $this->value($row, ['lrn']) ?: null,
+            'lrn' => $lrn,
             'year' => $gradeLevel !== '' ? $gradeLevel : null,
             'educational_level' => $educationalLevel !== '' ? $educationalLevel : null,
             'course' => $this->value($row, ['course']) ?: null,
@@ -136,7 +143,8 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
             'birth_date' => $this->parseDate($row['birth_date'] ?? $row['date_of_birth'] ?? null),
             'emergency_person' => $this->value($row, ['emergency_person', 'contact_person']) ?: null,
             'emergency_number' => $this->value($row, ['emergency_number', 'number']) ?: null,
-            'emergency_address' => $this->value($row, ['emergency_address', 'address']) ?: null,
+            'address' => $address,
+            'emergency_address' => $emergencyAddress ?? $address,
             'profile_picture' => $this->normalizeProfilePicture($row),
             'rfid' => $this->value($row, ['rfid']) ?: null,
             'qrcode' => $this->value($row, ['qrcode']) ?: null,
@@ -248,17 +256,14 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         return ! $query->exists();
     }
 
-    private function educationalLevelForGrade(string $gradeLevel): ?string
+    private function nullableText(string $value): ?string
     {
-        $gradeLevel = trim($gradeLevel);
-
-        foreach (config('patron.year_options', []) as $level => $years) {
-            if (in_array($gradeLevel, $years, true)) {
-                return $level;
-            }
+        $value = trim($value);
+        if ($value === '' || strcasecmp($value, 'N/A') === 0) {
+            return null;
         }
 
-        return null;
+        return $value;
     }
 
     private function nextStudentQrCode(): string
