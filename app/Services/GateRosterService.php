@@ -84,7 +84,8 @@ class GateRosterService
             'attendance_sections' => Setting::attendanceSections(),
             'gate_terminals' => Setting::gateTerminals(),
             'early_departure' => [
-                'enabled' => $this->departure->isEnabled(),
+                // Offline gate terminals allow IN/OUT at any time (no 4pm block).
+                'enabled' => false,
                 'educational_levels' => config('patron.early_departure.educational_levels', ['grade_school']),
                 'message' => config('patron.early_departure.message'),
                 'timezone' => $this->departure->timezone(),

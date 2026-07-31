@@ -60,7 +60,7 @@ Scan screen: **http://127.0.0.1:9173**
 
 ## Notes
 
-- Offline rules match JMC online scanning: last log IN ↔ OUT, plus grade-school early OUT block
+- Offline rules: last log IN ↔ OUT toggle only (no early-OUT / 4pm restriction)
 - Online browser gate picker (`/attendance`) is unchanged
 - Visitors: use the online gate only
 

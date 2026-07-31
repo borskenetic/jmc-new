@@ -103,14 +103,6 @@ app.post('/api/scan/record', (req, res) => {
       logout_feedback_enabled: false,
     });
   } catch (error) {
-    const preview = previewScan(token);
-    if (preview.type === 'early_out_blocked') {
-      return res.status(403).json({
-        message: preview.message,
-        allowed_after: preview.allowed_after,
-      });
-    }
-
     return res.status(422).json({ message: error.message });
   }
 });

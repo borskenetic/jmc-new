@@ -68,38 +68,6 @@ function closeStaleOpenIn(student) {
   };
 }
 
-function getLogoutCutoffToday(settings, at = new Date()) {
-  const logoutTime = settings?.early_departure?.earliest_out || '16:00';
-  const [hours, minutes] = String(logoutTime).split(':').map(Number);
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-CA', {
-      timeZone: settings?.early_departure?.timezone || TZ,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    })
-      .formatToParts(at)
-      .map((p) => [p.type, p.value])
-  );
-
-  return new Date(
-    `${parts.year}-${parts.month}-${parts.day}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00+08:00`
-  );
-}
-
-function blocksCheckout(student, settings, at = new Date()) {
-  const early = settings?.early_departure || {};
-  if (!early.enabled) return false;
-
-  const levels = early.educational_levels || [];
-  if (!levels.length) return false;
-  if (!student.educational_level || !levels.includes(student.educational_level)) {
-    return false;
-  }
-
-  return at < getLogoutCutoffToday(settings, at);
-}
-
 function formatDisplayTime(iso) {
   return new Date(iso).toLocaleString('en-US', {
     timeZone: TZ,
@@ -141,19 +109,6 @@ function previewScan(rawToken) {
   const lastIn = isInStatus(student.last_log_status);
   const nextStatus = lastIn ? 'OUT' : 'IN';
 
-  if (nextStatus === 'OUT' && blocksCheckout(student, settings)) {
-    const allowedAfter = settings?.early_departure?.earliest_out_label || '4:00 PM';
-    const message = (settings?.early_departure?.message || 'Checkout not allowed before {time}.')
-      .replace('{time}', allowedAfter);
-
-    return {
-      type: 'early_out_blocked',
-      message,
-      allowed_after: allowedAfter,
-      student: studentPayload(student),
-    };
-  }
-
   return {
     type: 'student',
     next_status: nextStatus,
@@ -167,9 +122,6 @@ function previewScan(rawToken) {
 
 function recordScan(rawToken, section = null) {
   const preview = previewScan(rawToken);
-  if (preview.type === 'early_out_blocked') {
-    throw new Error(preview.message || 'Scan not allowed.');
-  }
   if (preview.type !== 'student') {
     throw new Error(preview.message || 'Scan not allowed.');
   }
