@@ -92,6 +92,7 @@ class GateRosterService
                 'earliest_out' => config('patron.early_departure.earliest_out', '16:00'),
                 'earliest_out_label' => $this->departure->earliestOutLabel(),
             ],
+            'scan_cooldown_minutes' => (int) config('attendance.scan_cooldown_minutes', 10),
             'timezone' => $this->departure->timezone(),
         ];
     }

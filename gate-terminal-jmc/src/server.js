@@ -103,6 +103,15 @@ app.post('/api/scan/record', (req, res) => {
       logout_feedback_enabled: false,
     });
   } catch (error) {
+    if (error.code === 'scan_cooldown') {
+      return res.status(429).json({
+        type: 'scan_cooldown',
+        message: error.message,
+        retry_after_minutes: error.payload?.retry_after_minutes,
+        student: error.payload?.student,
+      });
+    }
+
     return res.status(422).json({ message: error.message });
   }
 });

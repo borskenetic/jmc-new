@@ -176,6 +176,15 @@
       if (earlyOutAlarmTime && data.allowed_after) {
         earlyOutAlarmTime.textContent = data.allowed_after;
       }
+      const hint = earlyOutAlarm?.querySelector('.early-out-alarm__hint');
+      if (hint) {
+        hint.hidden = !data.allowed_after;
+        if (data.allowed_after) {
+          hint.innerHTML = `Allowed after <strong id="earlyOutAlarmTime">${data.allowed_after}</strong>`;
+        }
+      }
+      const title = earlyOutAlarm?.querySelector('.early-out-alarm__title');
+      if (title) title.textContent = 'Early checkout not allowed';
 
       profileImg.src = profileUrl(student.profile_picture);
 
@@ -192,6 +201,49 @@
       scanSidebar?.classList.add('sidebar--alarm');
       playAlarmSound();
       scheduleClear(8000);
+    }
+
+    function showCooldownAlarm(data) {
+      if (!earlyOutAlarm) {
+        showUnknownScanAlarm(data.message || 'Please wait before scanning again.');
+        return;
+      }
+      const student = data.student || {};
+      const name = [student.firstname, student.lastname].filter(Boolean).join(' ');
+      const year = student.year ? ` (${student.year})` : '';
+      const wait = data.retry_after_minutes;
+
+      if (earlyOutAlarmMessage) {
+        earlyOutAlarmMessage.textContent = data.message || 'Please wait before scanning again.';
+      }
+      if (earlyOutAlarmTime) {
+        earlyOutAlarmTime.textContent = wait ? `${wait} min` : 'a few minutes';
+      }
+      const hint = earlyOutAlarm?.querySelector('.early-out-alarm__hint');
+      if (hint) {
+        hint.hidden = false;
+        hint.innerHTML = wait
+          ? `Try again in <strong>${wait} minute${wait === 1 ? '' : 's'}</strong>`
+          : 'Try again in a few minutes';
+      }
+      const title = earlyOutAlarm?.querySelector('.early-out-alarm__title');
+      if (title) title.textContent = 'Scan cooldown';
+
+      profileImg.src = profileUrl(student.profile_picture);
+
+      const div = document.createElement('div');
+      div.classList.add('name-box', 'name-box--blocked');
+      div.innerHTML = `
+        <div class="student-name">${name || 'Student'}${year}</div>
+        <div class="label">Too soon</div>
+        <div class="status-button status-blocked">WAIT</div>
+      `;
+      sidebar.appendChild(div);
+
+      earlyOutAlarm.hidden = false;
+      scanSidebar?.classList.add('sidebar--alarm');
+      playAlarmSound();
+      scheduleClear(5000);
     }
 
     function showUnknownScanAlarm(message) {
@@ -289,6 +341,14 @@
         return;
       }
 
+      if (res.status === 429 || response.type === 'scan_cooldown') {
+        showCooldownAlarm({
+          ...response,
+          student: response.student || selectedStudent,
+        });
+        return;
+      }
+
       const status = response.status || lookupData?.next_status;
       if (!res.ok || !status) {
         const msg = response.message
@@ -359,6 +419,12 @@
 
           if (data.type === 'early_out_blocked') {
             showEarlyOutAlarm(data);
+            input.value = '';
+            return;
+          }
+
+          if (data.type === 'scan_cooldown') {
+            showCooldownAlarm(data);
             input.value = '';
             return;
           }

@@ -68,6 +68,44 @@ function closeStaleOpenIn(student) {
   };
 }
 
+function cooldownMinutes(settings) {
+  if (settings?.scan_cooldown_minutes === undefined || settings?.scan_cooldown_minutes === null) {
+    return 10;
+  }
+  const n = Number(settings.scan_cooldown_minutes);
+  if (!Number.isFinite(n) || n < 0) return 10;
+  return Math.floor(n);
+}
+
+function cooldownBlock(student, settings, at = new Date()) {
+  const minutes = cooldownMinutes(settings);
+  if (minutes <= 0 || !student.last_log_scanned_at) {
+    return null;
+  }
+
+  const last = new Date(student.last_log_scanned_at);
+  if (Number.isNaN(last.getTime())) {
+    return null;
+  }
+
+  const cooldownMs = minutes * 60 * 1000;
+  const elapsed = at.getTime() - last.getTime();
+  if (elapsed >= cooldownMs) {
+    return null;
+  }
+
+  const waitMs = cooldownMs - elapsed;
+  const waitMinutes = Math.max(1, Math.ceil(waitMs / 60000));
+
+  return {
+    type: 'scan_cooldown',
+    message: `Please wait ${waitMinutes} more minute${waitMinutes === 1 ? '' : 's'} before scanning again.`,
+    retry_after_minutes: waitMinutes,
+    cooldown_minutes: minutes,
+    student: studentPayload(student),
+  };
+}
+
 function formatDisplayTime(iso) {
   return new Date(iso).toLocaleString('en-US', {
     timeZone: TZ,
@@ -106,6 +144,11 @@ function previewScan(rawToken) {
 
   student = closeStaleOpenIn(student);
 
+  const cooldown = cooldownBlock(student, settings);
+  if (cooldown) {
+    return cooldown;
+  }
+
   const lastIn = isInStatus(student.last_log_status);
   const nextStatus = lastIn ? 'OUT' : 'IN';
 
@@ -122,6 +165,12 @@ function previewScan(rawToken) {
 
 function recordScan(rawToken, section = null) {
   const preview = previewScan(rawToken);
+  if (preview.type === 'scan_cooldown') {
+    const err = new Error(preview.message || 'Please wait before scanning again.');
+    err.code = 'scan_cooldown';
+    err.payload = preview;
+    throw err;
+  }
   if (preview.type !== 'student') {
     throw new Error(preview.message || 'Scan not allowed.');
   }

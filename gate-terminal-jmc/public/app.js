@@ -141,7 +141,12 @@ document.addEventListener('DOMContentLoaded', function () {
       earlyOutAlarmTime.textContent = data.allowed_after;
     }
     const hint = earlyOutAlarm?.querySelector('.early-out-alarm__hint');
-    if (hint) hint.hidden = !data.allowed_after;
+    if (hint) {
+      hint.hidden = !data.allowed_after;
+      if (data.allowed_after) {
+        hint.innerHTML = `Allowed after <strong id="earlyOutAlarmTime">${data.allowed_after}</strong>`;
+      }
+    }
     const title = earlyOutAlarm?.querySelector('.early-out-alarm__title');
     if (title) title.textContent = 'Early checkout not allowed';
 
@@ -160,6 +165,50 @@ document.addEventListener('DOMContentLoaded', function () {
     sidebar?.classList.add('sidebar--alarm');
     playAlarmSound();
     scheduleClear(8000);
+  }
+
+  function showCooldownAlarm(data) {
+    if (!earlyOutAlarm) {
+      showUnknownScanAlarm(data.message || 'Please wait before scanning again.');
+      return;
+    }
+    const student = data.student || {};
+    const name = [student.firstname, student.lastname].filter(Boolean).join(' ');
+    const year = student.year ? ` (${student.year})` : '';
+    const wait = data.retry_after_minutes;
+
+    if (earlyOutAlarmMessage) {
+      earlyOutAlarmMessage.textContent = data.message
+        || 'Please wait before scanning again.';
+    }
+    if (earlyOutAlarmTime) {
+      earlyOutAlarmTime.textContent = wait ? `${wait} min` : 'a few minutes';
+    }
+    const hint = earlyOutAlarm?.querySelector('.early-out-alarm__hint');
+    if (hint) {
+      hint.hidden = false;
+      hint.innerHTML = wait
+        ? `Try again in <strong>${wait} minute${wait === 1 ? '' : 's'}</strong>`
+        : 'Try again in a few minutes';
+    }
+    const title = earlyOutAlarm?.querySelector('.early-out-alarm__title');
+    if (title) title.textContent = 'Scan cooldown';
+
+    profileImg.src = profileUrl(student.profile_picture);
+
+    const div = document.createElement('div');
+    div.classList.add('name-box', 'name-box--blocked');
+    div.innerHTML = `
+      <div class="student-name">${name || 'Student'}${year}</div>
+      <div class="label">Too soon</div>
+      <div class="status-button status-blocked">WAIT</div>
+    `;
+    sidebar.appendChild(div);
+
+    earlyOutAlarm.hidden = false;
+    sidebar?.classList.add('sidebar--alarm');
+    playAlarmSound();
+    scheduleClear(5000);
   }
 
   function showUnknownScanAlarm(message) {
@@ -225,6 +274,11 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
+      if (data.type === 'scan_cooldown') {
+        showCooldownAlarm(data);
+        return;
+      }
+
       if (data.type === 'student') {
         selectedStudent = data.student;
         currentScanToken = token;
@@ -252,6 +306,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 message: err.data?.message,
                 allowed_after: err.data?.allowed_after,
                 student: selectedStudent,
+              });
+            } else if (err.status === 429 || err.data?.type === 'scan_cooldown') {
+              showCooldownAlarm({
+                ...err.data,
+                student: err.data?.student || selectedStudent,
               });
             } else {
               showUnknownScanAlarm(err.message || 'Scan failed. Try again.');

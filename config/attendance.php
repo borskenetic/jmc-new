@@ -8,8 +8,9 @@ return [
     'section_picker_enabled' => env('ATTENDANCE_SECTION_PICKER_ENABLED', false),
 
     /*
-    | Logout feedback modal on OUT scans + admin settings UI.
+    | Minimum minutes between scans for the same patron (IN or OUT).
+    | Set to 0 to disable.
     */
-    'logout_feedback_enabled' => env('ATTENDANCE_LOGOUT_FEEDBACK_ENABLED', false),
+    'scan_cooldown_minutes' => (int) env('ATTENDANCE_SCAN_COOLDOWN_MINUTES', 10),
 
 ];

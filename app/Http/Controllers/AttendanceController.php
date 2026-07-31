@@ -226,6 +226,10 @@ class AttendanceController extends Controller
 
         $nextStatus = ($lastLog && $sessions->isInStatus($lastLog->status)) ? 'OUT' : 'IN';
 
+        if ($cooldown = $this->scanCooldownPayload($student, $lastLog)) {
+            return $cooldown;
+        }
+
         $departure = app(StudentDeparturePolicy::class);
         if ($nextStatus === 'OUT' && $departure->blocksCheckout($student)) {
             return [
@@ -284,6 +288,10 @@ class AttendanceController extends Controller
             ->orderByDesc('scanned_at')
             ->orderByDesc('id')
             ->first();
+
+        if ($cooldown = $this->scanCooldownPayload($student, $lastLog)) {
+            return response()->json($cooldown, 429);
+        }
 
         $newStatus = ($lastLog && $sessions->isInStatus($lastLog->status)) ? 'OUT' : 'IN';
 
@@ -408,6 +416,41 @@ class AttendanceController extends Controller
             $departure->earliestOutLabel(),
             $departure->blockMessage()
         );
+    }
+
+    /** @return array<string, mixed>|null */
+    private function scanCooldownPayload(Student $student, ?AttendanceLog $lastLog): ?array
+    {
+        $minutes = (int) config('attendance.scan_cooldown_minutes', 10);
+        if ($minutes <= 0 || ! $lastLog?->scanned_at) {
+            return null;
+        }
+
+        $elapsedSeconds = $lastLog->scanned_at->diffInSeconds(now(), false);
+        if ($elapsedSeconds < 0) {
+            return null;
+        }
+
+        $cooldownSeconds = $minutes * 60;
+        if ($elapsedSeconds >= $cooldownSeconds) {
+            return null;
+        }
+
+        $waitMinutes = (int) max(1, (int) ceil(($cooldownSeconds - $elapsedSeconds) / 60));
+
+        return [
+            'type' => 'scan_cooldown',
+            'message' => 'Please wait '.$waitMinutes.' more minute'.($waitMinutes === 1 ? '' : 's').' before scanning again.',
+            'retry_after_minutes' => $waitMinutes,
+            'cooldown_minutes' => $minutes,
+            'student' => [
+                'id' => $student->id,
+                'firstname' => $student->firstname,
+                'lastname' => $student->lastname,
+                'profile_picture' => $student->profile_picture,
+                'year' => $student->year,
+            ],
+        ];
     }
 
     private function resolveStudent(string $raw): ?Student

@@ -60,7 +60,7 @@ Scan screen: **http://127.0.0.1:9173**
 
 ## Notes
 
-- Offline rules: last log IN ↔ OUT toggle only (no early-OUT / 4pm restriction)
+- Offline rules: last log IN ↔ OUT toggle, plus 10-minute per-student scan cooldown
 - Online browser gate picker (`/attendance`) is unchanged
 - Visitors: use the online gate only
 
