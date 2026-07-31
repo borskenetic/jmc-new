@@ -303,7 +303,11 @@ class AttendanceController extends Controller
             'scanned_at' => now(),
         ]);
 
-        $this->sendScanSms($student, $newStatus);
+        try {
+            $this->sendScanSms($student, $newStatus);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json([
             'status' => $newStatus,
@@ -464,6 +468,10 @@ class AttendanceController extends Controller
     private function sendScanSms(Student $student, string $status): void
     {
         if (empty($student->mobile_number)) {
+            \Illuminate\Support\Facades\Log::warning('Scan SMS skip: student has no mobile_number', [
+                'student_id' => $student->id,
+            ]);
+
             return;
         }
 

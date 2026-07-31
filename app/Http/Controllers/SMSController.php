@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Setting;
 use App\Models\Student;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SmsController extends Controller
 {
@@ -90,16 +91,24 @@ class SmsController extends Controller
             ];
         }
     
-        // send to your local Python server
-        $python_server = "https://cloakedly-ineffective-amara.ngrok-free.dev/send-sms"; // your ngrok URL
-        $api_key = "library123"; // must match Python server
-        
+        $url = config('services.sms_modem.url');
+        $apiKey = config('services.sms_modem.key');
+
+        if (! $url) {
+            return back()->with('error', 'SMS modem URL is not configured (SMS_MODEM_URL).');
+        }
+
         $response = Http::withHeaders([
-            'X-API-KEY' => $api_key
-        ])->timeout(300) 
-        ->post($python_server, $payload);
-            
-        return back()->with('success','SMS sent successfully');
+            'X-API-KEY' => $apiKey,
+            'ngrok-skip-browser-warning' => 'true',
+        ])->timeout(300)
+        ->post($url, $payload);
+
+        if (! $response->successful()) {
+            return back()->with('error', 'SMS server rejected the request (HTTP '.$response->status().').');
+        }
+
+        return back()->with('success', 'SMS sent successfully');
     }
 
     public function sendDirect(string $number, string $message): bool
@@ -107,25 +116,42 @@ class SmsController extends Controller
         $number = $this->normalizePhilippineMobile($number);
 
         if ($number === '') {
+            Log::warning('SMS skip: empty/invalid mobile number after normalize');
+
             return false;
         }
 
-        $url = config('services.sms_modem.url', env('SMS_MODEM_URL'));
-        $apiKey = config('services.sms_modem.key', env('SMS_MODEM_API_KEY'));
+        $url = config('services.sms_modem.url');
+        $apiKey = config('services.sms_modem.key');
 
         if (! $url) {
+            Log::warning('SMS skip: SMS_MODEM_URL is empty. Set it in .env to your ngrok /send-sms URL, then php artisan config:clear');
+
             return false;
         }
 
         try {
-            $response = Http::withHeaders(['X-API-KEY' => $apiKey])
+            Log::info('SMS POST', ['url' => $url, 'number' => $number]);
+
+            $response = Http::withHeaders([
+                'X-API-KEY' => $apiKey,
+                'ngrok-skip-browser-warning' => 'true',
+            ])
                 ->timeout(30)
                 ->post($url, [
                     ['number' => $number, 'message' => $message],
                 ]);
 
+            if (! $response->successful()) {
+                Log::warning('SMS server non-success', [
+                    'status' => $response->status(),
+                    'body' => substr($response->body(), 0, 500),
+                ]);
+            }
+
             return $response->successful();
         } catch (\Throwable $e) {
+            Log::error('SMS POST failed', ['url' => $url, 'error' => $e->getMessage()]);
             report($e);
 
             return false;

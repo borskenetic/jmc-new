@@ -246,6 +246,74 @@
       });
     }
 
+    function showStudentScanResult(student, status, scannedAt, meta = {}) {
+      const isOut = String(status).toUpperCase() === 'OUT';
+      const label = meta.sectionLabel || 'Name';
+      const div = document.createElement('div');
+      div.classList.add('name-box', 'scan-result-box');
+      div.innerHTML = `
+        <div class="student-name">${student.firstname} ${student.lastname}</div>
+        <div class="label">${label}</div>
+        <div class="status-button${isOut ? ' status-out' : ''}">${status}</div>
+        <div class="timestamp">${scannedAt || ''}</div>
+      `;
+      sidebar.appendChild(div);
+      showDividerName(`${student.firstname} ${student.lastname}`, status, scannedAt, isOut);
+    }
+
+    async function recordStudentScan(studentId, section, lookupData, sectionLabel) {
+      const res = await fetch("{{ route('attendance.section') }}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': '{{ csrf_token() }}',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ student_id: studentId, section }),
+      });
+
+      let response = {};
+      try {
+        response = await res.json();
+      } catch (e) {
+        showUnknownScanAlarm('Could not record attendance. Please try again.');
+        return;
+      }
+
+      if (res.status === 403) {
+        showEarlyOutAlarm({
+          message: response.message,
+          allowed_after: response.allowed_after,
+          student: selectedStudent,
+        });
+        return;
+      }
+
+      const status = response.status || lookupData?.next_status;
+      if (!res.ok || !status) {
+        const msg = response.message
+          || (response.errors && Object.values(response.errors).flat()[0])
+          || 'Could not record attendance.';
+        showUnknownScanAlarm(msg);
+        return;
+      }
+
+      showStudentScanResult(selectedStudent, status, response.scanned_at, { sectionLabel });
+
+      if (String(status).toUpperCase() === 'OUT') {
+        const feedbackOn = response.logout_feedback_enabled
+          ?? lookupData?.logout_feedback_enabled
+          ?? LOGOUT_FEEDBACK_ENABLED;
+        if (feedbackOn) {
+          showLogoutFeedback();
+        } else {
+          scheduleClear(2000);
+        }
+      } else {
+        scheduleClear(3000);
+      }
+    }
+
     function showVisitorScanResult(visitor, status, timestamp) {
       const org = visitor.organization ? ` · ${visitor.organization}` : '';
       const div = document.createElement('div');
@@ -315,72 +383,14 @@
             profileImg.src = profileUrl(data.student.profile_picture);
 
             if (data.next_status === 'OUT') {
-              fetch("{{ route('attendance.section') }}", {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                  'Accept': 'application/json',
-                },
-                body: JSON.stringify({ student_id: currentStudentId, section: null })
-              })
-              .then(async res => {
-                const response = await res.json();
-                if (res.status === 403) {
-                  showEarlyOutAlarm({
-                    message: response.message,
-                    allowed_after: response.allowed_after,
-                    student: selectedStudent,
-                  });
-                  return;
-                }
-                const div = document.createElement('div');
-                div.classList.add('name-box', 'scan-result-box');
-                div.innerHTML = `
-                  <div class="student-name">${selectedStudent.firstname} ${selectedStudent.lastname}</div>
-                  <div class="label">Name</div>
-                  <div class="status-button status-out">OUT</div>
-                  <div class="timestamp">${response.scanned_at}</div>
-                `;
-                sidebar.appendChild(div);
-                showDividerName(`${selectedStudent.firstname} ${selectedStudent.lastname}`, 'OUT', response.scanned_at, true);
-
-                const feedbackOn = response.logout_feedback_enabled ?? data.logout_feedback_enabled ?? LOGOUT_FEEDBACK_ENABLED;
-                if (feedbackOn) {
-                  showLogoutFeedback();
-                } else {
-                  scheduleClear(2000);
-                }
-              });
+              recordStudentScan(currentStudentId, null, data);
             } else {
               const sectionPickerOn = (data.section_picker_enabled ?? SECTION_PICKER_ENABLED) && HAS_ATTENDANCE_SECTIONS;
               if (sectionPickerOn) {
                 sectionModal.style.display = 'flex';
                 sectionModal.setAttribute('aria-hidden', 'false');
               } else {
-                fetch("{{ route('attendance.section') }}", {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                  },
-                  body: JSON.stringify({ student_id: currentStudentId, section: null })
-                })
-                .then(res => res.json())
-                .then(response => {
-                  const div = document.createElement('div');
-                  div.classList.add('name-box', 'scan-result-box');
-                  div.innerHTML = `
-                    <div class="student-name">${selectedStudent.firstname} ${selectedStudent.lastname}</div>
-                    <div class="label">Name</div>
-                    <div class="status-button">${response.status}</div>
-                    <div class="timestamp">${response.scanned_at}</div>
-                  `;
-                  sidebar.appendChild(div);
-                  showDividerName(`${selectedStudent.firstname} ${selectedStudent.lastname}`, response.status, response.scanned_at, false);
-                  scheduleClear(3000);
-                });
+                recordStudentScan(currentStudentId, null, data);
               }
             }
           } else if (data.type === 'error') {
@@ -396,35 +406,15 @@
       btn.addEventListener('click', function () {
         if (!currentStudentId) return;
 
-        fetch("{{ route('attendance.section') }}", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({
-            student_id: currentStudentId,
-            section: this.dataset.section,
-          })
-        })
-        .then(res => res.json())
-        .then(response => {
-          sectionModal.style.display = 'none';
-          sectionModal.setAttribute('aria-hidden', 'true');
+        sectionModal.style.display = 'none';
+        sectionModal.setAttribute('aria-hidden', 'true');
 
-          const div = document.createElement('div');
-          div.classList.add('name-box', 'scan-result-box');
-          div.innerHTML = `
-            <div class="student-name">${selectedStudent.firstname} ${selectedStudent.lastname}</div>
-            <div class="label">${this.dataset.section}</div>
-            <div class="status-button">${response.status}</div>
-            <div class="timestamp">${response.scanned_at}</div>
-          `;
-          sidebar.appendChild(div);
-          showDividerName(`${selectedStudent.firstname} ${selectedStudent.lastname}`, response.status, response.scanned_at, false);
-          scheduleClear(3000);
-        });
+        recordStudentScan(
+          currentStudentId,
+          this.dataset.section,
+          { next_status: 'IN', logout_feedback_enabled: LOGOUT_FEEDBACK_ENABLED },
+          this.dataset.section
+        );
       });
     });
 

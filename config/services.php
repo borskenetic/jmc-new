@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    /*
+    | Local GSM modem bridge (Flask sms_server.py / ngrok). POST JSON array of
+    | { "number", "message" } to /send-sms with X-API-KEY header.
+    | Scan attendance SMS uses this; set SMS_MODEM_URL to your ngrok URL in production.
+    */
+    'sms_modem' => [
+        'url' => env('SMS_MODEM_URL'),
+        'key' => env('SMS_MODEM_API_KEY'),
+    ],
+
 ];

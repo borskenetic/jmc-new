@@ -170,7 +170,11 @@ class StudentScanService
             'source' => 'gate_sync',
         ]);
 
-        $this->sendScanSms($student, $status, $scannedAt);
+        try {
+            $this->sendScanSms($student, $status, $scannedAt);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return $log;
     }
