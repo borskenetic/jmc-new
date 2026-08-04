@@ -1,379 +1,144 @@
-/* Activity + SMS logs */
-.activity-logs-page {
-    --act-ink: #1a2332;
-    --act-muted: #5b6775;
-    --act-line: rgba(26, 35, 50, 0.1);
-    --act-surface: #fff;
-    --act-accent: var(--brand-button-bg, #1f7a1f);
-    color: var(--act-ink);
-    padding-bottom: 2rem;
-    font-family: var(--brand-font-family, 'Segoe UI', sans-serif);
-}
+/* Activity log — builds on visitor_logs styles */
 
-.act-header {
+.activity-logs-page .act-tabs {
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1.25rem;
-}
-
-.act-title {
-    font-size: 1.65rem;
-    font-weight: 700;
-    margin: 0 0 0.25rem;
-    letter-spacing: -0.02em;
-}
-
-.act-subtitle {
-    margin: 0;
-    color: var(--act-muted);
-    font-size: 0.95rem;
-}
-
-.act-tabs {
-    display: flex;
     gap: 0.5rem;
-    margin-bottom: 1.25rem;
-    flex-wrap: wrap;
+    margin: 0 0 1.25rem;
 }
 
-.act-tab {
+.activity-logs-page .act-tab {
     display: inline-flex;
     align-items: center;
-    padding: 0.5rem 1rem;
+    padding: 0.45rem 1rem;
     border-radius: 999px;
-    border: 1px solid var(--act-line);
-    background: var(--act-surface);
-    color: var(--act-ink);
-    text-decoration: none;
+    border: 1px solid rgba(34, 51, 59, 0.12);
+    background: #fff;
+    color: #475569;
+    font-size: 0.8125rem;
     font-weight: 600;
-    font-size: 0.9rem;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.act-tab:hover {
-    border-color: var(--act-accent);
-    color: var(--act-accent);
+.activity-logs-page .act-tab:hover {
+    border-color: var(--brand-primary-darker, #125a82);
+    color: var(--brand-primary-darker, #125a82);
 }
 
-.act-tab.is-active {
-    background: var(--act-accent);
-    border-color: var(--act-accent);
-    color: var(--brand-button-text, #fff);
+.activity-logs-page .act-tab.is-active {
+    background: var(--brand-primary-darker, #125a82);
+    border-color: var(--brand-primary-darker, #125a82);
+    color: #fff;
 }
 
-.act-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-}
-
-.act-stat-card {
-    background: var(--act-surface);
-    border: 1px solid var(--act-line);
-    border-radius: 12px;
-    padding: 0.9rem 1rem;
-    box-shadow: 0 1px 3px rgba(26, 35, 50, 0.05);
-}
-
-.act-stat-card__label {
-    display: block;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--act-muted);
-    margin-bottom: 0.25rem;
-}
-
-.act-stat-card__value {
-    font-size: 1.35rem;
-    font-weight: 700;
-}
-
-.act-stat-card--ok .act-stat-card__value { color: #157347; }
-.act-stat-card--fail .act-stat-card__value { color: #b42318; }
-.act-stat-card--today .act-stat-card__value { color: #1d4ed8; }
-
-.act-controls {
-    background: var(--act-surface);
-    border: 1px solid var(--act-line);
-    border-radius: 14px;
-    padding: 1rem;
-    margin-bottom: 1.25rem;
-}
-
-.act-search-row {
-    display: flex;
-    gap: 0.6rem;
-    margin-bottom: 0.85rem;
-    flex-wrap: wrap;
-}
-
-.act-search {
-    flex: 1 1 220px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border: 1px solid var(--act-line);
-    border-radius: 10px;
-    padding: 0.45rem 0.75rem;
-    background: #fafbfc;
-}
-
-.act-search svg {
-    width: 18px;
-    height: 18px;
-    fill: none;
-    stroke: var(--act-muted);
-    stroke-width: 2;
+.activity-logs-page .vl-search svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    min-width: 1.1rem;
+    min-height: 1.1rem;
     flex-shrink: 0;
+    fill: none;
+    stroke: #94a3b8;
+    color: #94a3b8;
 }
 
-.act-search input {
-    border: 0;
-    outline: 0;
+.activity-logs-page .act-select {
     width: 100%;
-    background: transparent;
-    font: inherit;
-}
-
-.act-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid rgba(34, 51, 59, 0.14);
     border-radius: 10px;
-    padding: 0.5rem 1rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-    text-decoration: none;
-    border: 1px solid transparent;
-    cursor: pointer;
+    font-size: 0.875rem;
+    background: #fff;
+    color: #0f172a;
 }
 
-.act-btn--primary {
-    background: var(--act-accent);
-    color: var(--brand-button-text, #fff);
+.activity-logs-page .act-msg,
+.activity-logs-page .act-desc {
+    color: #334155;
+    line-height: 1.4;
+    max-width: 28rem;
 }
 
-.act-btn--ghost {
-    background: transparent;
-    border-color: var(--act-line);
-    color: var(--act-ink);
+.activity-logs-page .act-action-code {
+    word-break: break-all;
 }
 
-.act-control-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.act-control-group__label {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--act-muted);
-    margin-bottom: 0.4rem;
-}
-
-.act-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-}
-
-.act-pill {
+.activity-logs-page .act-source {
     display: inline-flex;
-    padding: 0.3rem 0.7rem;
+    padding: 0.2rem 0.65rem;
     border-radius: 999px;
-    border: 1px solid var(--act-line);
-    color: var(--act-ink);
-    text-decoration: none;
-    font-size: 0.82rem;
-    font-weight: 600;
-    background: #fff;
-}
-
-.act-pill.is-active,
-.act-pill:hover {
-    border-color: var(--act-accent);
-    color: var(--act-accent);
-    background: color-mix(in srgb, var(--act-accent) 10%, white);
-}
-
-.act-more-filters {
-    margin-top: 0.85rem;
-    border-top: 1px solid var(--act-line);
-    padding-top: 0.75rem;
-}
-
-.act-more-filters > summary {
-    cursor: pointer;
-    font-weight: 600;
-    color: var(--act-muted);
-    font-size: 0.88rem;
-}
-
-.act-more-filters__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 0.75rem;
-    margin-top: 0.75rem;
-}
-
-.act-field label {
-    display: block;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--act-muted);
-    margin-bottom: 0.3rem;
-}
-
-.act-field input,
-.act-field select {
-    width: 100%;
-    border: 1px solid var(--act-line);
-    border-radius: 8px;
-    padding: 0.45rem 0.6rem;
-    font: inherit;
-    background: #fff;
-}
-
-.act-field--actions {
-    display: flex;
-    align-items: flex-end;
-    gap: 0.5rem;
-}
-
-.act-table-wrap {
-    background: var(--act-surface);
-    border: 1px solid var(--act-line);
-    border-radius: 14px;
-    overflow-x: auto;
-}
-
-.act-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 720px;
-}
-
-.act-table th,
-.act-table td {
-    padding: 0.75rem 0.9rem;
-    border-bottom: 1px solid var(--act-line);
-    text-align: left;
-    vertical-align: top;
-    font-size: 0.9rem;
-}
-
-.act-table th {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--act-muted);
-    background: #f8fafb;
-    white-space: nowrap;
-}
-
-.act-table tbody tr:last-child td {
-    border-bottom: 0;
-}
-
-.act-message {
-    max-width: 280px;
-    color: var(--act-muted);
-}
-
-.act-action {
-    font-size: 0.8rem;
-    background: #f1f5f9;
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-}
-
-.act-badge {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    background: #eef2ff;
-    color: #3730a3;
-    font-size: 0.78rem;
-    font-weight: 600;
-    text-transform: capitalize;
-}
-
-.act-status {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    font-size: 0.78rem;
+    background: rgba(18, 90, 130, 0.1);
+    color: var(--brand-primary-darker, #125a82);
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
-.act-status--sent { background: #d1fae5; color: #065f46; }
-.act-status--failed { background: #fee2e2; color: #991b1b; }
-.act-status--skipped { background: #fef3c7; color: #92400e; }
-.act-status--pending { background: #e5e7eb; color: #374151; }
-
-.act-error {
-    margin-top: 0.25rem;
-    font-size: 0.75rem;
-    color: #b42318;
+.activity-logs-page .act-status--sent {
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
 }
 
-.act-empty {
-    text-align: center;
-    color: var(--act-muted);
-    padding: 2rem !important;
+.activity-logs-page .act-status--failed {
+    background: rgba(220, 38, 38, 0.1);
+    color: #b91c1c;
 }
 
-.act-pagination {
-    margin-top: 1rem;
+.activity-logs-page .act-status--skipped {
+    background: rgba(245, 158, 11, 0.15);
+    color: #b45309;
+}
+
+.activity-logs-page .act-status--pending {
+    background: rgba(100, 116, 139, 0.12);
+    color: #475569;
+}
+
+.activity-logs-page .act-error {
+    margin-top: 0.3rem;
+    font-size: 0.72rem;
+    color: #b91c1c;
+    line-height: 1.3;
 }
 
 @media (max-width: 768px) {
-    .act-table {
-        min-width: 0;
-    }
-
-    .act-table thead {
+    .activity-logs-page .vl-table thead {
         display: none;
     }
 
-    .act-table,
-    .act-table tbody,
-    .act-table tr,
-    .act-table td {
+    .activity-logs-page .vl-table,
+    .activity-logs-page .vl-table tbody,
+    .activity-logs-page .vl-table tr,
+    .activity-logs-page .vl-table td {
         display: block;
         width: 100%;
     }
 
-    .act-table tr {
-        padding: 0.75rem;
-        border-bottom: 1px solid var(--act-line);
+    .activity-logs-page .vl-table tr {
+        padding: 0.9rem 1.15rem;
+        border-bottom: 1px solid rgba(34, 51, 59, 0.06);
     }
 
-    .act-table td {
+    .activity-logs-page .vl-table td {
+        padding: 0.2rem 0;
         border: 0;
-        padding: 0.25rem 0;
     }
 
-    .act-table td::before {
+    .activity-logs-page .vl-table td::before {
         content: attr(data-label);
         display: block;
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         font-weight: 700;
         text-transform: uppercase;
-        color: var(--act-muted);
+        letter-spacing: 0.05em;
+        color: #94a3b8;
         margin-bottom: 0.1rem;
     }
 
-    .act-message {
+    .activity-logs-page .act-msg,
+    .activity-logs-page .act-desc {
         max-width: none;
     }
 }
