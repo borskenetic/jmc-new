@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\FaceEnrollmentController;
 use App\Http\Controllers\HomeController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Sf2ReportController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VisitorLogController;
 use App\Http\Controllers\VisitorRegistrationController;
+use App\Http\Middleware\LogAdminActivity;
 use Illuminate\Support\Facades\Route;
 
 // Public
@@ -58,7 +60,7 @@ Route::post('/attendance/gates/ping', [AttendanceController::class, 'pingGate'])
 Route::post('/attendance-feedback', [FeedController::class, 'store'])->name('attendance.feedback.store');
 
 // Admin + Staff
-Route::middleware(['auth', 'can:isAdminOrStaff'])->group(function () {
+Route::middleware(['auth', 'can:isAdminOrStaff', LogAdminActivity::class])->group(function () {
     Route::get('/admin/pending', [StudentController::class, 'pending'])->name('students.pending');
     Route::post('/admin/pending/{id}/approve', [StudentController::class, 'approve'])->name('students.approve');
     Route::post('/admin/pending/{id}/reject', [StudentController::class, 'reject'])->name('students.reject');
@@ -135,7 +137,9 @@ Route::middleware(['auth', 'can:isAdminOrStaff'])->group(function () {
 });
 
 // Admin only
-Route::middleware(['auth', 'can:isAdmin'])->group(function () {
+Route::middleware(['auth', 'can:isAdmin', LogAdminActivity::class])->group(function () {
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity_logs.index');
+
     Route::get('/register-student', [StudentController::class, 'create'])->name('students.create');
     Route::post('/register-student', [StudentController::class, 'store'])->name('students.store');
     Route::get('/students/import-template', [StudentController::class, 'downloadImportTemplate'])->name('students.import.template');

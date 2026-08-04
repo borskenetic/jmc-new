@@ -66,11 +66,13 @@
 
                 @can('isAdmin')
                     <div class="nav-dropdown">
-                        <button type="button" class="nav-dropdown-button {{ $dropActive(['users.*', 'school-setup.*', 'prospectus.*']) }}">
+                        <button type="button" class="nav-dropdown-button {{ $dropActive(['users.*', 'school-setup.*', 'prospectus.*', 'files.*', 'activity_logs.*']) }}">
                             Admin
                         </button>
                         <div class="nav-dropdown-content">
                             <a href="{{ route('school-setup.index') }}" class="{{ $linkActive(['school-setup.*', 'prospectus.*']) }}">School Setup</a>
+                            <a href="{{ route('files.index') }}" class="{{ $linkActive(['files.*']) }}">Files</a>
+                            <a href="{{ route('activity_logs.index') }}" class="{{ $linkActive(['activity_logs.*']) }}">Activity Log</a>
                             <a href="{{ route('users.create') }}" class="{{ $linkActive(['users.create', 'users.store']) }}">Create Account</a>
                             <a href="{{ route('users.index') }}" class="{{ $linkActive(['users.index', 'users.edit']) }}">View Accounts</a>
                         </div>

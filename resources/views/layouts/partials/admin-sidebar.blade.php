@@ -61,6 +61,7 @@
     $adminChildren = [
         ['label' => 'School Setup', 'route' => 'school-setup.index', 'patterns' => ['school-setup.*', 'prospectus.*'], 'icon' => 'grid'],
         ['label' => 'Files',        'route' => 'files.index',        'patterns' => ['files.*'],                          'icon' => 'folder'],
+        ['label' => 'Activity Log', 'route' => 'activity_logs.index', 'patterns' => ['activity_logs.*'],                 'icon' => 'clock'],
         [
             'label'    => 'Accounts',
             'icon'     => 'user-plus',

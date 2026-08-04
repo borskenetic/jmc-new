@@ -531,6 +531,6 @@ class AttendanceController extends Controller
             $template
         );
 
-        app(SmsController::class)->sendDirect($student->mobile_number, $message);
+        app(SmsController::class)->sendDirect($student->mobile_number, $message, 'scan');
     }
 }

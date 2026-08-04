@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -31,7 +32,17 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            return $this->redirectForRole(Auth::user()->role);
+            $user = Auth::user();
+            if (in_array($user->role, ['admin', 'staff'], true)) {
+                ActivityLogger::log(
+                    action: 'auth.login',
+                    description: trim(($user->fname ?? '').' '.($user->lname ?? '')).' logged in',
+                    properties: ['role' => $user->role],
+                    request: $request,
+                );
+            }
+
+            return $this->redirectForRole($user->role);
         }
 
         return back()->withErrors([
@@ -41,6 +52,16 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $user = Auth::user();
+        if ($user && in_array($user->role, ['admin', 'staff'], true)) {
+            ActivityLogger::log(
+                action: 'auth.logout',
+                description: trim(($user->fname ?? '').' '.($user->lname ?? '')).' logged out',
+                properties: ['role' => $user->role],
+                request: $request,
+            );
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
