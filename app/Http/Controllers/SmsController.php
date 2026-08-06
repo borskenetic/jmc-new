@@ -27,12 +27,14 @@ class SmsController extends Controller
         ]);
     }
 
+    public const DEFAULT_SCAN_SMS = '{name} has scanned {status} into the campus at {time}.';
+
     public function scanMessage()
     {
         $setting = Setting::where('key', 'scan_sms')->first();
 
         return view('sms.scan_message', [
-            'message' => $setting ? $setting->value : 'Hello {name}, you scanned {status} at the library.',
+            'message' => $setting ? $setting->value : self::DEFAULT_SCAN_SMS,
         ]);
     }
 
@@ -106,9 +108,9 @@ class SmsController extends Controller
         foreach ($students as $student) {
             $name = trim(($student->firstname ?? '').' '.($student->lastname ?? ''));
             $message = str_replace('{name}', $name, $request->message);
-            $number = $this->normalizePhilippineMobile((string) $student->mobile_number);
+            $numbers = $this->normalizePhilippineMobiles((string) $student->mobile_number);
 
-            if ($number === '') {
+            if ($numbers === []) {
                 $this->recordSmsLog(
                     recipient: (string) $student->mobile_number,
                     message: $message,
@@ -121,16 +123,18 @@ class SmsController extends Controller
                 continue;
             }
 
-            $payload[] = [
-                'number' => $number,
-                'message' => $message,
-            ];
+            foreach ($numbers as $number) {
+                $payload[] = [
+                    'number' => $number,
+                    'message' => $message,
+                ];
 
-            $entries[] = [
-                'number' => $number,
-                'message' => $message,
-                'student_id' => $student->id,
-            ];
+                $entries[] = [
+                    'number' => $number,
+                    'message' => $message,
+                    'student_id' => $student->id,
+                ];
+            }
         }
 
         if ($payload === []) {
@@ -199,10 +203,12 @@ class SmsController extends Controller
 
     public function sendDirect(string $number, string $message, string $source = 'direct'): bool
     {
-        $normalized = $this->normalizePhilippineMobile($number);
+        $numbers = $this->normalizePhilippineMobiles($number);
 
-        if ($normalized === '') {
-            Log::warning('SMS skip: empty/invalid mobile number after normalize');
+        if ($numbers === []) {
+            Log::warning('SMS skip: empty/invalid mobile number after normalize', [
+                'raw' => $number,
+            ]);
             $this->recordSmsLog(
                 recipient: $number,
                 message: $message,
@@ -219,28 +225,33 @@ class SmsController extends Controller
 
         if (! $url) {
             Log::warning('SMS skip: SMS_MODEM_URL is empty. Set it in .env to your ngrok /send-sms URL, then php artisan config:clear');
-            $this->recordSmsLog(
-                recipient: $normalized,
-                message: $message,
-                status: 'skipped',
-                source: $source,
-                error: 'SMS_MODEM_URL is not configured',
-            );
+            foreach ($numbers as $normalized) {
+                $this->recordSmsLog(
+                    recipient: $normalized,
+                    message: $message,
+                    status: 'skipped',
+                    source: $source,
+                    error: 'SMS_MODEM_URL is not configured',
+                );
+            }
 
             return false;
         }
 
+        $payload = array_map(
+            fn (string $normalized) => ['number' => $normalized, 'message' => $message],
+            $numbers
+        );
+
         try {
-            Log::info('SMS POST', ['url' => $url, 'number' => $normalized]);
+            Log::info('SMS POST', ['url' => $url, 'numbers' => $numbers]);
 
             $response = Http::withHeaders([
                 'X-API-KEY' => $apiKey,
                 'ngrok-skip-browser-warning' => 'true',
             ])
                 ->timeout(30)
-                ->post($url, [
-                    ['number' => $normalized, 'message' => $message],
-                ]);
+                ->post($url, $payload);
 
             if (! $response->successful()) {
                 Log::warning('SMS server non-success', [
@@ -248,36 +259,42 @@ class SmsController extends Controller
                     'body' => substr($response->body(), 0, 500),
                 ]);
 
-                $this->recordSmsLog(
-                    recipient: $normalized,
-                    message: $message,
-                    status: 'failed',
-                    source: $source,
-                    error: 'HTTP '.$response->status(),
-                );
+                foreach ($numbers as $normalized) {
+                    $this->recordSmsLog(
+                        recipient: $normalized,
+                        message: $message,
+                        status: 'failed',
+                        source: $source,
+                        error: 'HTTP '.$response->status(),
+                    );
+                }
 
                 return false;
             }
 
-            $this->recordSmsLog(
-                recipient: $normalized,
-                message: $message,
-                status: 'sent',
-                source: $source,
-            );
+            foreach ($numbers as $normalized) {
+                $this->recordSmsLog(
+                    recipient: $normalized,
+                    message: $message,
+                    status: 'sent',
+                    source: $source,
+                );
+            }
 
             return true;
         } catch (\Throwable $e) {
             Log::error('SMS POST failed', ['url' => $url, 'error' => $e->getMessage()]);
             report($e);
 
-            $this->recordSmsLog(
-                recipient: $normalized,
-                message: $message,
-                status: 'failed',
-                source: $source,
-                error: $e->getMessage(),
-            );
+            foreach ($numbers as $normalized) {
+                $this->recordSmsLog(
+                    recipient: $normalized,
+                    message: $message,
+                    status: 'failed',
+                    source: $source,
+                    error: $e->getMessage(),
+                );
+            }
 
             return false;
         }
@@ -306,22 +323,73 @@ class SmsController extends Controller
         }
     }
 
+    /**
+     * Split free-form contact fields into unique E.164 PH mobiles (+639XXXXXXXXX).
+     * Accepts separators like /, ,, ;, | and formats such as:
+     * 09102243526, 0910-224-3526, +639102243526, 639102243526, 9102243526.
+     *
+     * @return list<string>
+     */
+    public function normalizePhilippineMobiles(string $raw): array
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\s*(?:\/|,|;|\||(?:\band\b))\s*/i', $raw) ?: [];
+        $normalized = [];
+
+        foreach ($parts as $part) {
+            $number = $this->normalizePhilippineMobile(trim((string) $part));
+            if ($number !== '' && ! in_array($number, $normalized, true)) {
+                $normalized[] = $number;
+            }
+        }
+
+        return $normalized;
+    }
+
     private function normalizePhilippineMobile(string $number): string
     {
-        $number = preg_replace('/\s+/', '', $number) ?? '';
-
+        $number = trim($number);
         if ($number === '') {
             return '';
         }
 
-        if (str_starts_with($number, '0')) {
-            return '+63'.substr($number, 1);
+        $digits = preg_replace('/\D+/', '', $number) ?? '';
+        if ($digits === '') {
+            return '';
         }
 
-        if (str_starts_with($number, '63')) {
-            return '+'.$number;
+        // 639XXXXXXXXX or 6309XXXXXXXX (mis-typed with trunk 0)
+        if (str_starts_with($digits, '63')) {
+            $rest = substr($digits, 2);
+            if (str_starts_with($rest, '0')) {
+                $rest = substr($rest, 1);
+            }
+            if (strlen($rest) === 10 && str_starts_with($rest, '9')) {
+                return '+63'.$rest;
+            }
+
+            return '';
         }
 
-        return $number;
+        // 09XXXXXXXXX
+        if (str_starts_with($digits, '0')) {
+            $rest = substr($digits, 1);
+            if (strlen($rest) === 10 && str_starts_with($rest, '9')) {
+                return '+63'.$rest;
+            }
+
+            return '';
+        }
+
+        // 9XXXXXXXXX (no trunk 0)
+        if (strlen($digits) === 10 && str_starts_with($digits, '9')) {
+            return '+63'.$digits;
+        }
+
+        return '';
     }
 }

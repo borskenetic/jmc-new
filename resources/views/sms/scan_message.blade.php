@@ -31,6 +31,8 @@
 
             <small class="text-muted">
 
+                Sent to the student’s emergency contact number on each campus scan.
+                <br>
                 Available tags:
                 <br><b>{name}</b> – student name
                 <br><b>{status}</b> – IN or OUT

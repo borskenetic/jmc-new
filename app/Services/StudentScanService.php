@@ -181,12 +181,17 @@ class StudentScanService
 
     protected function sendScanSms(Student $student, string $status, Carbon $scannedAt): void
     {
-        if (empty($student->mobile_number)) {
+        $recipient = trim((string) ($student->emergency_number ?? ''));
+        if ($recipient === '') {
+            \Illuminate\Support\Facades\Log::warning('Scan SMS skip: student has no emergency_number', [
+                'student_id' => $student->id,
+            ]);
+
             return;
         }
 
         $template = Setting::where('key', Setting::KEY_SCAN_SMS)->value('value')
-            ?? 'Hello {name}, you scanned {status} at the library at {time}.';
+            ?? SmsController::DEFAULT_SCAN_SMS;
 
         $message = str_replace(
             ['{name}', '{status}', '{time}'],
@@ -198,6 +203,6 @@ class StudentScanService
             $template
         );
 
-        app(SmsController::class)->sendDirect($student->mobile_number, $message, 'scan');
+        app(SmsController::class)->sendDirect($recipient, $message, 'scan');
     }
 }

@@ -235,7 +235,7 @@ class StudentController extends Controller
             'address' => 'nullable|string',
             'emergency_person' => 'nullable|string|max:255',
             'emergency_relationship' => 'nullable|string|max:255',
-            'emergency_number' => 'nullable|string|max:20',
+            'emergency_number' => 'nullable|string|max:100',
             'emergency_address' => 'nullable|string',
             'rfid' => 'nullable|string|max:255|unique:students,rfid',
         ]);
@@ -332,7 +332,7 @@ class StudentController extends Controller
             'address' => 'nullable|string',
             'emergency_person' => 'nullable|string|max:255',
             'emergency_relationship' => 'nullable|string|max:255',
-            'emergency_number' => 'nullable|string|max:20',
+            'emergency_number' => 'nullable|string|max:100',
             'emergency_address' => 'nullable|string',
             'rfid' => 'nullable|string|max:255|unique:students,rfid,'.$id,
     
@@ -569,7 +569,7 @@ class StudentController extends Controller
 
             'emergency_person' => 'nullable|string|max:255',
             'emergency_relationship' => 'nullable|string|max:255',
-            'emergency_number' => 'nullable|string|max:20',
+            'emergency_number' => 'nullable|string|max:100',
             'emergency_address' => 'nullable|string',
 
             'profile_picture' => 'nullable|image|max:2048'
