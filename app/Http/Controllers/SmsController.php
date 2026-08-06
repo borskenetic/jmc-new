@@ -6,6 +6,7 @@ use App\Models\Setting;
 use App\Models\SmsLog;
 use App\Models\Student;
 use App\Support\ActivityLogger;
+use App\Support\PatronOptions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -13,8 +14,26 @@ use Illuminate\Support\Facades\Log;
 
 class SmsController extends Controller
 {
+    public const DEFAULT_SCAN_SMS = '{name} has scanned {status} into the campus at {time}.';
+
     public function index()
     {
+        $yearOptions = PatronOptions::allYearOptions();
+
+        $dbYears = Student::query()
+            ->whereNotNull('year')
+            ->where('year', '!=', '')
+            ->distinct()
+            ->orderBy('year')
+            ->pluck('year')
+            ->all();
+
+        foreach ($dbYears as $year) {
+            if (! in_array($year, $yearOptions, true)) {
+                $yearOptions[] = $year;
+            }
+        }
+
         $courses = Student::select('course')
             ->whereNotNull('course')
             ->where('course', '!=', '')
@@ -22,12 +41,30 @@ class SmsController extends Controller
             ->orderBy('course')
             ->pluck('course');
 
+        $sections = Student::query()
+            ->whereNotNull('section')
+            ->where('section', '!=', '')
+            ->distinct()
+            ->orderBy('section')
+            ->pluck('section');
+
+        $sectionsByGrade = Student::query()
+            ->whereNotNull('section')
+            ->where('section', '!=', '')
+            ->whereNotNull('year')
+            ->where('year', '!=', '')
+            ->get(['year', 'section'])
+            ->groupBy('year')
+            ->map(fn ($rows) => $rows->pluck('section')->unique()->sort()->values()->all())
+            ->all();
+
         return view('sms.blast', [
             'courses' => $courses,
+            'yearOptions' => $yearOptions,
+            'sections' => $sections,
+            'sectionsByGrade' => $sectionsByGrade,
         ]);
     }
-
-    public const DEFAULT_SCAN_SMS = '{name} has scanned {status} into the campus at {time}.';
 
     public function scanMessage()
     {
@@ -54,19 +91,15 @@ class SmsController extends Controller
 
     public function count(Request $request)
     {
-        $query = Student::whereNotNull('mobile_number')
-            ->where('mobile_number', '!=', '');
-
-        if ($request->year) {
-            $query->where('year', $request->year);
-        }
-
-        if ($request->course) {
-            $query->where('course', $request->course);
-        }
+        $request->validate([
+            'recipient' => 'nullable|in:student,emergency_contact',
+            'year' => 'nullable|string',
+            'course' => 'nullable|string',
+            'section' => 'nullable|string',
+        ]);
 
         return response()->json([
-            'count' => $query->count(),
+            'count' => $this->blastQuery($request)->count(),
         ]);
     }
 
@@ -74,22 +107,14 @@ class SmsController extends Controller
     {
         $request->validate([
             'message' => 'required|string',
+            'recipient' => 'required|in:student,emergency_contact',
             'year' => 'nullable|string',
             'course' => 'nullable|string',
+            'section' => 'nullable|string',
         ]);
 
-        $query = Student::whereNotNull('mobile_number')
-            ->where('mobile_number', '!=', '');
-
-        if ($request->filled('year')) {
-            $query->where('year', $request->year);
-        }
-
-        if ($request->filled('course')) {
-            $query->where('course', $request->course);
-        }
-
-        $students = $query->get();
+        $column = $this->recipientColumn($request->input('recipient'));
+        $students = $this->blastQuery($request)->get();
 
         if ($students->isEmpty()) {
             return back()->with('error', 'No recipients found for the selected filters.');
@@ -108,16 +133,20 @@ class SmsController extends Controller
         foreach ($students as $student) {
             $name = trim(($student->firstname ?? '').' '.($student->lastname ?? ''));
             $message = str_replace('{name}', $name, $request->message);
-            $numbers = $this->normalizePhilippineMobiles((string) $student->mobile_number);
+            $rawNumber = (string) ($student->{$column} ?? '');
+            $numbers = $this->normalizePhilippineMobiles($rawNumber);
 
             if ($numbers === []) {
                 $this->recordSmsLog(
-                    recipient: (string) $student->mobile_number,
+                    recipient: $rawNumber,
                     message: $message,
                     status: 'skipped',
                     source: 'blast',
                     error: 'Invalid mobile number',
-                    meta: ['student_id' => $student->id],
+                    meta: [
+                        'student_id' => $student->id,
+                        'recipient_type' => $request->input('recipient'),
+                    ],
                 );
 
                 continue;
@@ -141,6 +170,10 @@ class SmsController extends Controller
             return back()->with('error', 'No valid mobile numbers among the selected recipients.');
         }
 
+        $label = $request->input('recipient') === 'student'
+            ? 'student mobile numbers'
+            : 'emergency contacts';
+
         try {
             $response = Http::withHeaders([
                 'X-API-KEY' => $apiKey,
@@ -158,21 +191,27 @@ class SmsController extends Controller
                     status: $ok ? 'sent' : 'failed',
                     source: 'blast',
                     error: $error,
-                    meta: ['student_id' => $entry['student_id']],
+                    meta: [
+                        'student_id' => $entry['student_id'],
+                        'recipient_type' => $request->input('recipient'),
+                    ],
                 );
             }
 
             ActivityLogger::log(
                 action: 'sms.blast',
                 description: sprintf(
-                    'SMS blast to %d recipient(s) — %s',
+                    'SMS blast to %d %s — %s',
                     count($entries),
+                    $label,
                     $ok ? 'sent' : 'failed'
                 ),
                 properties: [
                     'recipients' => count($entries),
                     'success' => $ok,
+                    'recipient_type' => $request->input('recipient'),
                     'year' => $request->year,
+                    'section' => $request->section,
                     'course' => $request->course,
                 ],
             );
@@ -181,7 +220,7 @@ class SmsController extends Controller
                 return back()->with('error', 'SMS server rejected the request (HTTP '.$response->status().').');
             }
 
-            return back()->with('success', 'SMS sent successfully to '.count($entries).' recipient(s).');
+            return back()->with('success', 'SMS sent successfully to '.count($entries).' '.$label.'.');
         } catch (\Throwable $e) {
             Log::error('SMS blast failed', ['error' => $e->getMessage()]);
             report($e);
@@ -193,12 +232,48 @@ class SmsController extends Controller
                     status: 'failed',
                     source: 'blast',
                     error: $e->getMessage(),
-                    meta: ['student_id' => $entry['student_id']],
+                    meta: [
+                        'student_id' => $entry['student_id'],
+                        'recipient_type' => $request->input('recipient'),
+                    ],
                 );
             }
 
             return back()->with('error', 'Could not reach the SMS server: '.$e->getMessage());
         }
+    }
+
+    private function recipientColumn(string $recipient): string
+    {
+        return $recipient === 'student' ? 'mobile_number' : 'emergency_number';
+    }
+
+    private function blastQuery(Request $request)
+    {
+        $recipient = $request->input('recipient', 'emergency_contact');
+        $column = $this->recipientColumn(
+            in_array($recipient, ['student', 'emergency_contact'], true)
+                ? $recipient
+                : 'emergency_contact'
+        );
+
+        $query = Student::query()
+            ->whereNotNull($column)
+            ->where($column, '!=', '');
+
+        if ($request->filled('year')) {
+            $query->where('year', $request->year);
+        }
+
+        if ($request->filled('course')) {
+            $query->where('course', $request->course);
+        }
+
+        if ($request->filled('section')) {
+            $query->where('section', $request->section);
+        }
+
+        return $query;
     }
 
     public function sendDirect(string $number, string $message, string $source = 'direct'): bool
