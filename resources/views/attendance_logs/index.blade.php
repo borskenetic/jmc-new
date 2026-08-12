@@ -229,7 +229,7 @@
                         @php
                             $student = $log->student;
                             $status = strtoupper((string) $log->status);
-                            $isLate = $status === 'IN' && $log->is_late;
+                            $isLate = $status === 'IN' && $log->isLateArrival();
                             $initials = $student
                                 ? strtoupper(substr($student->firstname ?? '', 0, 1).substr($student->lastname ?? '', 0, 1))
                                 : '?';
