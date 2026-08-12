@@ -2,13 +2,9 @@
 
 @section('content')
 @php
-    $groupLabels = \App\Services\StudentAttendanceSchedule::groupLabels();
-    $tempApply = old('temporary.apply_to', $temporary['apply_to'] ?? ['general']);
-    if (! is_array($tempApply)) {
-        $tempApply = ['general'];
-    }
+    $permanent = $permanent ?? ['in_time' => '07:30', 'out_time' => '14:00', 'grace_minutes' => 10];
 @endphp
-<div class="container py-4" style="max-width: 920px;">
+<div class="container py-4" style="max-width: 720px;">
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <h3 class="mb-0">IN / OUT schedule</h3>
         <a href="{{ route('attendance_logs.index') }}" class="btn btn-outline-secondary btn-sm">Attendance logs</a>
@@ -35,7 +31,7 @@
             <div class="card-header fw-semibold">Temporary time change</div>
             <div class="card-body">
                 <p class="text-muted">
-                    While active, these times override the permanent schedule you select below.
+                    While active, these times override the permanent schedule below for all students.
                     After the end date, the system automatically uses the permanent times again
                     (permanent fields are never overwritten by a temporary change).
                 </p>
@@ -48,7 +44,7 @@
                     <label class="form-check-label fw-semibold" for="tempEnabled">Enable temporary time change</label>
                 </div>
 
-                <div class="row g-3 mb-3">
+                <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label" for="temp_in">Temp login</label>
                         <input type="time" class="form-control" id="temp_in" name="temporary[in_time]"
@@ -70,56 +66,35 @@
                                value="{{ old('temporary.ends_on', $temporary['ends_on'] ?? '') }}">
                     </div>
                 </div>
-
-                <div class="d-flex flex-wrap gap-3">
-                    @foreach($groupLabels as $key => $label)
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox"
-                                   id="apply_{{ $key }}" name="temporary[apply_to][]" value="{{ $key }}"
-                                   {{ in_array($key, $tempApply, true) ? 'checked' : '' }}>
-                            <label class="form-check-label" for="apply_{{ $key }}">Apply to {{ strtolower($label) }}</label>
-                        </div>
-                    @endforeach
-                </div>
             </div>
         </div>
 
         <div class="card mb-4">
-            <div class="card-header fw-semibold">Permanent schedules</div>
+            <div class="card-header fw-semibold">Permanent schedule</div>
             <div class="card-body">
                 <p class="text-muted small">
-                    General covers Kinder–Grade 10 (and college). SHS day/evening use the student’s
-                    <code>class_session</code> (<strong>day</strong> by default, or <strong>evening</strong>).
-                    OUT scans are only accepted from <strong>{{ $outAllowedFromLabel }}</strong> onward (one IN and one OUT per student per day).
+                    Applies to all students. Late = first IN after IN time + grace.
+                    OUT scans are only accepted from <strong>{{ $outAllowedFromLabel }}</strong> onward
+                    (one IN and one OUT per student per day).
                 </p>
-
-                @foreach($groupLabels as $key => $label)
-                    @php $row = $groups[$key] ?? ['in_time' => '07:30', 'out_time' => '14:00', 'grace_minutes' => 10]; @endphp
-                    <div class="border rounded p-3 mb-3">
-                        <div class="fw-semibold mb-2">{{ $label }}</div>
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label" for="in_{{ $key }}">IN time</label>
-                                <input type="time" class="form-control" id="in_{{ $key }}"
-                                       name="groups[{{ $key }}][in_time]"
-                                       value="{{ old("groups.$key.in_time", $row['in_time']) }}" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="out_{{ $key }}">OUT time</label>
-                                <input type="time" class="form-control" id="out_{{ $key }}"
-                                       name="groups[{{ $key }}][out_time]"
-                                       value="{{ old("groups.$key.out_time", $row['out_time']) }}" required>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="grace_{{ $key }}">Grace (minutes)</label>
-                                <input type="number" class="form-control" id="grace_{{ $key }}"
-                                       name="groups[{{ $key }}][grace_minutes]"
-                                       value="{{ old("groups.$key.grace_minutes", $row['grace_minutes']) }}"
-                                       min="0" max="180" required>
-                            </div>
-                        </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="in_time">IN time</label>
+                        <input type="time" class="form-control" id="in_time" name="in_time"
+                               value="{{ old('in_time', $permanent['in_time']) }}" required>
                     </div>
-                @endforeach
+                    <div class="col-md-4">
+                        <label class="form-label" for="out_time">OUT time</label>
+                        <input type="time" class="form-control" id="out_time" name="out_time"
+                               value="{{ old('out_time', $permanent['out_time']) }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="grace_minutes">Grace (minutes)</label>
+                        <input type="number" class="form-control" id="grace_minutes" name="grace_minutes"
+                               value="{{ old('grace_minutes', $permanent['grace_minutes']) }}"
+                               min="0" max="180" required>
+                    </div>
+                </div>
             </div>
         </div>
 

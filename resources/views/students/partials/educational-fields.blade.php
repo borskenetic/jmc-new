@@ -70,17 +70,6 @@
     @error('course')<div class="invalid-feedback">{{ $message }}</div>@enderror
 </div>
 
-@php $sessionValue = old('class_session', $classSession ?? 'day'); @endphp
-<div class="col-md-6" id="patron-session-fields" @if(! $isSenior) hidden @endif>
-    <label for="class_session" class="form-label">SHS session</label>
-    <select name="class_session" id="class_session" class="form-select @error('class_session') is-invalid @enderror"
-            @if(! $isSenior) disabled @endif>
-        <option value="day" @selected($sessionValue === 'day')>Day</option>
-        <option value="evening" @selected($sessionValue === 'evening')>Evening</option>
-    </select>
-    @error('class_session')<div class="invalid-feedback">{{ $message }}</div>@enderror
-</div>
-
 <div class="col-md-6">
     <label for="year" class="form-label">Year / grade level <span class="text-danger">*</span></label>
     <select name="year" id="year" class="form-select @error('year') is-invalid @enderror" required
@@ -121,8 +110,6 @@
     const yearSelect = document.getElementById('year');
     const collegeCourse = document.getElementById('patron-course-college');
     const strandFields = document.getElementById('patron-strand-fields');
-    const sessionFields = document.getElementById('patron-session-fields');
-    const sessionSelect = document.getElementById('class_session');
     const courseSelect = document.getElementById('course');
     const strandSelect = document.getElementById('strand');
     const homeroomFields = document.getElementById('patron-homeroom-fields');
@@ -220,7 +207,6 @@
 
         if (collegeCourse) collegeCourse.hidden = !isCollege;
         if (strandFields) strandFields.hidden = !isSenior;
-        if (sessionFields) sessionFields.hidden = !isSenior;
 
         if (courseSelect) {
             courseSelect.required = isCollege;
@@ -239,15 +225,6 @@
                 strandSelect.setAttribute('name', 'course');
             } else {
                 strandSelect.removeAttribute('name');
-            }
-        }
-
-        if (sessionSelect) {
-            sessionSelect.disabled = !isSenior;
-            if (isSenior) {
-                sessionSelect.setAttribute('name', 'class_session');
-            } else {
-                sessionSelect.removeAttribute('name');
             }
         }
 

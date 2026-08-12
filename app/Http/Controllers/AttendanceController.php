@@ -129,13 +129,8 @@ class AttendanceController extends Controller
 
     public function scheduleSettings(StudentAttendanceSchedule $schedule)
     {
-        $groups = [];
-        foreach (StudentAttendanceSchedule::groupKeys() as $key) {
-            $groups[$key] = $schedule->permanentForGroup($key);
-        }
-
         return view('attendance.schedule_settings', [
-            'groups' => $groups,
+            'permanent' => $schedule->permanent(),
             'temporary' => $schedule->temporary(),
             'outAllowedFromLabel' => $schedule->outAllowedFromLabel(),
         ]);
@@ -143,22 +138,16 @@ class AttendanceController extends Controller
 
     public function updateScheduleSettings(Request $request, StudentAttendanceSchedule $schedule)
     {
-        $groupRules = [];
-        foreach (StudentAttendanceSchedule::groupKeys() as $key) {
-            $groupRules["groups.{$key}.in_time"] = ['required', 'date_format:H:i'];
-            $groupRules["groups.{$key}.out_time"] = ['required', 'date_format:H:i'];
-            $groupRules["groups.{$key}.grace_minutes"] = ['required', 'integer', 'min:0', 'max:180'];
-        }
-
-        $validated = $request->validate(array_merge($groupRules, [
+        $validated = $request->validate([
+            'in_time' => ['required', 'date_format:H:i'],
+            'out_time' => ['required', 'date_format:H:i'],
+            'grace_minutes' => ['required', 'integer', 'min:0', 'max:180'],
             'temporary.enabled' => ['nullable', 'in:0,1'],
             'temporary.in_time' => ['nullable', 'date_format:H:i'],
             'temporary.out_time' => ['nullable', 'date_format:H:i'],
             'temporary.starts_on' => ['nullable', 'date'],
             'temporary.ends_on' => ['nullable', 'date', 'after_or_equal:temporary.starts_on'],
-            'temporary.apply_to' => ['nullable', 'array'],
-            'temporary.apply_to.*' => ['in:'.implode(',', StudentAttendanceSchedule::groupKeys())],
-        ]));
+        ]);
 
         $tempEnabled = (string) $request->input('temporary.enabled') === '1';
         if ($tempEnabled) {
@@ -167,19 +156,19 @@ class AttendanceController extends Controller
                 'temporary.out_time' => ['required', 'date_format:H:i'],
                 'temporary.starts_on' => ['required', 'date'],
                 'temporary.ends_on' => ['required', 'date', 'after_or_equal:temporary.starts_on'],
-                'temporary.apply_to' => ['required', 'array', 'min:1'],
             ]);
         }
 
         $schedule->update([
-            'groups' => $validated['groups'] ?? $request->input('groups', []),
+            'in_time' => $validated['in_time'],
+            'out_time' => $validated['out_time'],
+            'grace_minutes' => $validated['grace_minutes'],
             'temporary' => [
                 'enabled' => $tempEnabled,
                 'in_time' => $request->input('temporary.in_time'),
                 'out_time' => $request->input('temporary.out_time'),
                 'starts_on' => $request->input('temporary.starts_on'),
                 'ends_on' => $request->input('temporary.ends_on'),
-                'apply_to' => $request->input('temporary.apply_to', []),
             ],
         ]);
 

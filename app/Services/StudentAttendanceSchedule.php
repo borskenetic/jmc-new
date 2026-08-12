@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\EducationalLevel;
 use App\Models\AttendanceLog;
 use App\Models\Setting;
 use App\Models\Student;
@@ -11,28 +10,6 @@ use Illuminate\Support\Facades\Schema;
 
 class StudentAttendanceSchedule
 {
-    public const GROUP_GENERAL = 'general';
-
-    public const GROUP_SHS_DAY = 'shs_day';
-
-    public const GROUP_SHS_EVENING = 'shs_evening';
-
-    /** @return list<string> */
-    public static function groupKeys(): array
-    {
-        return [self::GROUP_GENERAL, self::GROUP_SHS_DAY, self::GROUP_SHS_EVENING];
-    }
-
-    /** @return array<string, string> */
-    public static function groupLabels(): array
-    {
-        return [
-            self::GROUP_GENERAL => 'General (K–10)',
-            self::GROUP_SHS_DAY => 'SHS day',
-            self::GROUP_SHS_EVENING => 'SHS evening',
-        ];
-    }
-
     public function timezone(): string
     {
         return (string) config('attendance.schedule.timezone', config('app.timezone', 'Asia/Manila'));
@@ -52,39 +29,18 @@ class StudentAttendanceSchedule
         return $this->labelForTime($this->outAllowedFrom());
     }
 
-    public function resolveGroup(?Student $student = null): string
-    {
-        if ($student === null) {
-            return self::GROUP_GENERAL;
-        }
-
-        $level = $student->educational_level;
-        $levelValue = $level instanceof EducationalLevel
-            ? $level->value
-            : (is_string($level) ? $level : null);
-
-        if ($levelValue === EducationalLevel::HighSchoolSenior->value) {
-            $session = strtolower(trim((string) ($student->class_session ?? 'day')));
-
-            return $session === 'evening' ? self::GROUP_SHS_EVENING : self::GROUP_SHS_DAY;
-        }
-
-        return self::GROUP_GENERAL;
-    }
-
     /**
-     * Effective times for a group on a given date (temporary override if active).
+     * Effective times for a date (temporary override if active).
      *
      * @return array{in_time: string, out_time: string, grace_minutes: int, source: string}
      */
-    public function effectiveForGroup(string $group, ?string $date = null): array
+    public function effective(?string $date = null): array
     {
-        $group = $this->normalizeGroupKey($group);
         $date ??= Carbon::now($this->timezone())->toDateString();
-        $permanent = $this->permanentForGroup($group);
+        $permanent = $this->permanent();
         $temp = $this->temporary();
 
-        if ($this->temporaryApplies($temp, $group, $date)) {
+        if ($this->temporaryApplies($temp, $date)) {
             return [
                 'in_time' => $this->normalizedTime($temp['in_time'] ?? null, $permanent['in_time']),
                 'out_time' => $this->normalizedTime($temp['out_time'] ?? null, $permanent['out_time']),
@@ -103,7 +59,7 @@ class StudentAttendanceSchedule
     {
         $at = ($at ?? Carbon::now($this->timezone()))->copy()->timezone($this->timezone());
 
-        return $this->effectiveForGroup($this->resolveGroup($student), $at->toDateString());
+        return $this->effective($at->toDateString());
     }
 
     public function inTime(?Student $student = null, ?Carbon $at = null): string
@@ -140,7 +96,7 @@ class StudentAttendanceSchedule
 
     public function lateCutoffForDate(string $date, ?Student $student = null): Carbon
     {
-        $effective = $this->effectiveForGroup($this->resolveGroup($student), $date);
+        $effective = $this->effective($date);
 
         return Carbon::parse($date.' '.$effective['in_time'], $this->timezone())
             ->addMinutes((int) $effective['grace_minutes']);
@@ -241,17 +197,25 @@ class StudentAttendanceSchedule
     /**
      * @return array{in_time: string, out_time: string, grace_minutes: int}
      */
-    public function permanentForGroup(string $group): array
+    public function permanent(): array
     {
-        $group = $this->normalizeGroupKey($group);
-        $defaults = $this->defaultGroupTimes();
-        $groups = $this->rawGroups();
-        $row = $groups[$group] ?? [];
+        $raw = Setting::studentAttendanceSchedule();
+
+        // Prefer flat keys; fall back to legacy groups.general if present.
+        $legacyGroup = is_array($raw['groups']['general'] ?? null) ? $raw['groups']['general'] : [];
 
         return [
-            'in_time' => $this->normalizedTime($row['in_time'] ?? null, $defaults[$group]['in_time']),
-            'out_time' => $this->normalizedTime($row['out_time'] ?? null, $defaults[$group]['out_time']),
-            'grace_minutes' => max(0, min(180, (int) ($row['grace_minutes'] ?? $defaults[$group]['grace_minutes']))),
+            'in_time' => $this->normalizedTime(
+                $raw['in_time'] ?? ($legacyGroup['in_time'] ?? null),
+                $this->defaultInTime()
+            ),
+            'out_time' => $this->normalizedTime(
+                $raw['out_time'] ?? ($legacyGroup['out_time'] ?? null),
+                $this->defaultOutTime()
+            ),
+            'grace_minutes' => max(0, min(180, (int) (
+                $raw['grace_minutes'] ?? ($legacyGroup['grace_minutes'] ?? $this->defaultGraceMinutes())
+            ))),
         ];
     }
 
@@ -261,88 +225,70 @@ class StudentAttendanceSchedule
      *   in_time: ?string,
      *   out_time: ?string,
      *   starts_on: ?string,
-     *   ends_on: ?string,
-     *   apply_to: list<string>
+     *   ends_on: ?string
      * }
      */
     public function temporary(): array
     {
         $raw = Setting::studentAttendanceSchedule();
         $temp = is_array($raw['temporary'] ?? null) ? $raw['temporary'] : [];
-
-        $applyTo = $temp['apply_to'] ?? [self::GROUP_GENERAL];
-        if (! is_array($applyTo)) {
-            $applyTo = [self::GROUP_GENERAL];
-        }
-        $applyTo = array_values(array_intersect(self::groupKeys(), array_map('strval', $applyTo)));
-        if ($applyTo === []) {
-            $applyTo = [self::GROUP_GENERAL];
-        }
+        $permanent = $this->permanent();
 
         return [
             'enabled' => (bool) ($temp['enabled'] ?? false),
             'in_time' => isset($temp['in_time']) && $temp['in_time'] !== ''
-                ? $this->normalizedTime((string) $temp['in_time'], $this->defaultInTime())
+                ? $this->normalizedTime((string) $temp['in_time'], $permanent['in_time'])
                 : null,
             'out_time' => isset($temp['out_time']) && $temp['out_time'] !== ''
-                ? $this->normalizedTime((string) $temp['out_time'], $this->defaultOutTime())
+                ? $this->normalizedTime((string) $temp['out_time'], $permanent['out_time'])
                 : null,
             'starts_on' => $this->normalizeDate($temp['starts_on'] ?? null),
             'ends_on' => $this->normalizeDate($temp['ends_on'] ?? null),
-            'apply_to' => $applyTo,
         ];
     }
 
     /**
      * @param  array{
-     *   groups?: array<string, array{in_time?: string, out_time?: string, grace_minutes?: int|string}>,
+     *   in_time?: string,
+     *   out_time?: string,
+     *   grace_minutes?: int|string,
      *   temporary?: array<string, mixed>
      * }  $data
      */
     public function update(array $data): void
     {
-        $groups = [];
-        foreach (self::groupKeys() as $key) {
-            $row = $data['groups'][$key] ?? [];
-            $current = $this->permanentForGroup($key);
-            $groups[$key] = [
-                'in_time' => $this->normalizedTime($row['in_time'] ?? null, $current['in_time']),
-                'out_time' => $this->normalizedTime($row['out_time'] ?? null, $current['out_time']),
-                'grace_minutes' => max(0, min(180, (int) ($row['grace_minutes'] ?? $current['grace_minutes']))),
-            ];
-        }
+        $current = $this->permanent();
+        $permanent = [
+            'in_time' => $this->normalizedTime($data['in_time'] ?? null, $current['in_time']),
+            'out_time' => $this->normalizedTime($data['out_time'] ?? null, $current['out_time']),
+            'grace_minutes' => max(0, min(180, (int) ($data['grace_minutes'] ?? $current['grace_minutes']))),
+        ];
 
         $tempInput = $data['temporary'] ?? [];
         $enabled = (bool) ($tempInput['enabled'] ?? false);
-        $applyTo = $tempInput['apply_to'] ?? [];
-        if (! is_array($applyTo)) {
-            $applyTo = [];
-        }
-        $applyTo = array_values(array_intersect(self::groupKeys(), array_map('strval', $applyTo)));
-        if ($applyTo === []) {
-            $applyTo = [self::GROUP_GENERAL];
-        }
 
         $temporary = [
             'enabled' => $enabled,
-            'in_time' => $enabled
-                ? $this->normalizedTime($tempInput['in_time'] ?? null, $groups[self::GROUP_GENERAL]['in_time'])
-                : ($tempInput['in_time'] ?? null ? $this->normalizedTime((string) $tempInput['in_time'], $groups[self::GROUP_GENERAL]['in_time']) : null),
-            'out_time' => $enabled
-                ? $this->normalizedTime($tempInput['out_time'] ?? null, $groups[self::GROUP_GENERAL]['out_time'])
-                : ($tempInput['out_time'] ?? null ? $this->normalizedTime((string) $tempInput['out_time'], $groups[self::GROUP_GENERAL]['out_time']) : null),
+            'in_time' => ($tempInput['in_time'] ?? null) !== null && $tempInput['in_time'] !== ''
+                ? $this->normalizedTime((string) $tempInput['in_time'], $permanent['in_time'])
+                : null,
+            'out_time' => ($tempInput['out_time'] ?? null) !== null && $tempInput['out_time'] !== ''
+                ? $this->normalizedTime((string) $tempInput['out_time'], $permanent['out_time'])
+                : null,
             'starts_on' => $this->normalizeDate($tempInput['starts_on'] ?? null),
             'ends_on' => $this->normalizeDate($tempInput['ends_on'] ?? null),
-            'apply_to' => $applyTo,
         ];
 
+        if ($enabled) {
+            $temporary['in_time'] = $this->normalizedTime($tempInput['in_time'] ?? null, $permanent['in_time']);
+            $temporary['out_time'] = $this->normalizedTime($tempInput['out_time'] ?? null, $permanent['out_time']);
+        }
+
         Setting::setStudentAttendanceSchedule([
-            'groups' => $groups,
+            'in_time' => $permanent['in_time'],
+            'out_time' => $permanent['out_time'],
+            'grace_minutes' => $permanent['grace_minutes'],
             'temporary' => $temporary,
-            // Keep legacy flat keys synced to general for older readers.
-            'in_time' => $groups[self::GROUP_GENERAL]['in_time'],
-            'out_time' => $groups[self::GROUP_GENERAL]['out_time'],
-            'grace_minutes' => $groups[self::GROUP_GENERAL]['grace_minutes'],
         ]);
     }
 
@@ -402,20 +348,14 @@ class StudentAttendanceSchedule
             'grace_minutes' => $effective['grace_minutes'],
             'timezone' => $this->timezone(),
             'out_allowed_from' => $this->outAllowedFrom(),
-            'groups' => collect(self::groupKeys())
-                ->mapWithKeys(fn ($key) => [$key => $this->permanentForGroup($key)])
-                ->all(),
             'temporary' => $this->temporary(),
         ];
     }
 
     /** @param  array<string, mixed>  $temp */
-    protected function temporaryApplies(array $temp, string $group, string $date): bool
+    protected function temporaryApplies(array $temp, string $date): bool
     {
         if (! ($temp['enabled'] ?? false)) {
-            return false;
-        }
-        if (! in_array($group, $temp['apply_to'] ?? [], true)) {
             return false;
         }
         $start = $temp['starts_on'] ?? null;
@@ -431,51 +371,6 @@ class StudentAttendanceSchedule
         }
 
         return true;
-    }
-
-    /** @return array<string, array<string, mixed>> */
-    protected function rawGroups(): array
-    {
-        $raw = Setting::studentAttendanceSchedule();
-        if (isset($raw['groups']) && is_array($raw['groups'])) {
-            return $raw['groups'];
-        }
-
-        // Legacy single-schedule → seed all groups from flat keys.
-        $legacy = [
-            'in_time' => $raw['in_time'] ?? $this->defaultInTime(),
-            'out_time' => $raw['out_time'] ?? $this->defaultOutTime(),
-            'grace_minutes' => (int) ($raw['grace_minutes'] ?? $this->defaultGraceMinutes()),
-        ];
-
-        return [
-            self::GROUP_GENERAL => $legacy,
-            self::GROUP_SHS_DAY => $legacy,
-            self::GROUP_SHS_EVENING => [
-                'in_time' => '16:00',
-                'out_time' => '21:00',
-                'grace_minutes' => $legacy['grace_minutes'],
-            ],
-        ];
-    }
-
-    /** @return array<string, array{in_time: string, out_time: string, grace_minutes: int}> */
-    protected function defaultGroupTimes(): array
-    {
-        $in = $this->defaultInTime();
-        $out = $this->defaultOutTime();
-        $grace = $this->defaultGraceMinutes();
-
-        return [
-            self::GROUP_GENERAL => ['in_time' => $in, 'out_time' => $out, 'grace_minutes' => $grace],
-            self::GROUP_SHS_DAY => ['in_time' => $in, 'out_time' => $out, 'grace_minutes' => $grace],
-            self::GROUP_SHS_EVENING => ['in_time' => '16:00', 'out_time' => '21:00', 'grace_minutes' => $grace],
-        ];
-    }
-
-    protected function normalizeGroupKey(string $group): string
-    {
-        return in_array($group, self::groupKeys(), true) ? $group : self::GROUP_GENERAL;
     }
 
     protected function defaultInTime(): string

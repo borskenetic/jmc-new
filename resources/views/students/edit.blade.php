@@ -167,7 +167,6 @@
                                 'course' => old('course', $student->course),
                                 'section' => old('section', $student->section),
                                 'sex' => old('sex', $student->sex),
-                                'classSession' => old('class_session', $student->class_session ?? 'day'),
                             ])
                         </div>
                     </div>
