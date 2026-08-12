@@ -223,10 +223,6 @@ class Sf2AttendanceLogMapper
 
     protected function tardyCutoffForDate(string $date): Carbon
     {
-        $tz = config('sf2.timezone', 'Asia/Manila');
-        $startTime = config('sf2.class_start_time', '07:30');
-        $grace = (int) config('sf2.tardy_grace_minutes', 15);
-
-        return Carbon::parse($date.' '.$startTime, $tz)->addMinutes($grace);
+        return app(StudentAttendanceSchedule::class)->lateCutoffForDate($date);
     }
 }

@@ -333,12 +333,14 @@ document.addEventListener('DOMContentLoaded', function () {
             sectionModal.setAttribute('aria-hidden', 'false');
           } else {
             const response = await recordScan(token, null);
+            const isLate = Boolean(response.is_late || response.designation === 'LATE');
+            const displayStatus = isLate ? 'LATE' : response.status;
             const div = document.createElement('div');
             div.classList.add('name-box', 'scan-result-box');
             div.innerHTML = `
               <div class="student-name">${selectedStudent.firstname} ${selectedStudent.lastname}</div>
               <div class="label">Name</div>
-              <div class="status-button">${response.status}</div>
+              <div class="status-button${isLate ? ' status-late' : ''}">${displayStatus}</div>
               <div class="timestamp">${response.scanned_at}</div>
             `;
             sidebar.appendChild(div);
@@ -365,12 +367,14 @@ document.addEventListener('DOMContentLoaded', function () {
       sectionModal.style.display = 'none';
       sectionModal.setAttribute('aria-hidden', 'true');
 
+      const isLate = Boolean(response.is_late || response.designation === 'LATE');
+      const displayStatus = isLate ? 'LATE' : response.status;
       const div = document.createElement('div');
       div.classList.add('name-box', 'scan-result-box');
       div.innerHTML = `
         <div class="student-name">${selectedStudent.firstname} ${selectedStudent.lastname}</div>
         <div class="label">${section}</div>
-        <div class="status-button">${response.status}</div>
+        <div class="status-button${isLate ? ' status-late' : ''}">${displayStatus}</div>
         <div class="timestamp">${response.scanned_at}</div>
       `;
       sidebar.appendChild(div);

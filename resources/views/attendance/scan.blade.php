@@ -128,7 +128,7 @@
     setInterval(() => input.focus(), 100);
     input.focus();
 
-    function showDividerName(name, status, timestamp, isOut) {
+    function showDividerName(name, status, timestamp, isOut, isLate = false) {
       const display = document.getElementById('scanNameDisplay');
       const nameEl = document.getElementById('scanNameText');
       const badgeEl = document.getElementById('scanStatusBadge');
@@ -136,7 +136,9 @@
       if (!display) return;
       nameEl.textContent = name;
       badgeEl.textContent = status;
-      badgeEl.className = 'scan-status-badge' + (isOut ? ' scan-status-out' : '');
+      badgeEl.className = 'scan-status-badge'
+        + (isOut ? ' scan-status-out' : '')
+        + (isLate ? ' scan-status-late' : '');
       tsEl.textContent = timestamp || '';
       display.removeAttribute('hidden');
     }
@@ -300,17 +302,19 @@
 
     function showStudentScanResult(student, status, scannedAt, meta = {}) {
       const isOut = String(status).toUpperCase() === 'OUT';
+      const isLate = Boolean(meta.isLate);
+      const displayStatus = isLate ? 'LATE' : status;
       const label = meta.sectionLabel || 'Name';
       const div = document.createElement('div');
       div.classList.add('name-box', 'scan-result-box');
       div.innerHTML = `
         <div class="student-name">${student.firstname} ${student.lastname}</div>
         <div class="label">${label}</div>
-        <div class="status-button${isOut ? ' status-out' : ''}">${status}</div>
+        <div class="status-button${isOut ? ' status-out' : ''}${isLate ? ' status-late' : ''}">${displayStatus}</div>
         <div class="timestamp">${scannedAt || ''}</div>
       `;
       sidebar.appendChild(div);
-      showDividerName(`${student.firstname} ${student.lastname}`, status, scannedAt, isOut);
+      showDividerName(`${student.firstname} ${student.lastname}`, displayStatus, scannedAt, isOut, isLate);
     }
 
     async function recordStudentScan(studentId, section, lookupData, sectionLabel) {
@@ -358,7 +362,10 @@
         return;
       }
 
-      showStudentScanResult(selectedStudent, status, response.scanned_at, { sectionLabel });
+      showStudentScanResult(selectedStudent, status, response.scanned_at, {
+        sectionLabel,
+        isLate: Boolean(response.is_late || response.designation === 'LATE'),
+      });
 
       if (String(status).toUpperCase() === 'OUT') {
         const feedbackOn = response.logout_feedback_enabled

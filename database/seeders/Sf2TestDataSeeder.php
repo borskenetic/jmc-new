@@ -179,7 +179,7 @@ class Sf2TestDataSeeder extends Seeder
 
     /**
      * Per-student scan times by date. Omitted dates = absent.
-     * On time: 07:20. Tardy (after 07:45 cutoff): 08:05.
+     * On time: 07:20. Tardy (after 07:40 cutoff with 10 min grace): 08:05.
      *
      * @param  list<string>  $schoolDays
      * @return array<string, array<string, string>>

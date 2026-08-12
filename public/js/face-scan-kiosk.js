@@ -198,12 +198,14 @@
       setHint('Select section…');
     } else {
       processSection(null).then((res) => res.json()).then((response) => {
+        const isLate = Boolean(response.is_late || response.designation === 'LATE');
+        const displayStatus = isLate ? 'LATE' : response.status;
         const div = document.createElement('div');
         div.classList.add('name-box');
         div.innerHTML = `
           <div class="student-name">${selectedStudent.firstname} ${selectedStudent.lastname}</div>
           <div class="label">Name</div>
-          <div class="status-button">${response.status}</div>
+          <div class="status-button${isLate ? ' status-late' : ''}">${displayStatus}</div>
           <div class="timestamp">${response.scanned_at}</div>
         `;
         sidebar?.appendChild(div);
@@ -285,12 +287,14 @@
       processSection(this.dataset.section).then((res) => res.json()).then((response) => {
         sectionModal.style.display = 'none';
         sectionModal.setAttribute('aria-hidden', 'true');
+        const isLate = Boolean(response.is_late || response.designation === 'LATE');
+        const displayStatus = isLate ? 'LATE' : response.status;
         const div = document.createElement('div');
         div.classList.add('name-box');
         div.innerHTML = `
           <div class="student-name">${selectedStudent.firstname} ${selectedStudent.lastname}</div>
           <div class="label">${this.dataset.section}</div>
-          <div class="status-button">${response.status}</div>
+          <div class="status-button${isLate ? ' status-late' : ''}">${displayStatus}</div>
           <div class="timestamp">${response.scanned_at}</div>
         `;
         sidebar?.appendChild(div);

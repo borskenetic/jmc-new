@@ -324,6 +324,10 @@ body.scan-kiosk-page {
       background: #dc2626;
     }
 
+    .status-button.status-late {
+      background: #d97706;
+    }
+
     .right-content {
       flex: 1;
       background: linear-gradient(135deg, #e8f4fc 0%, #ffffff 50%, #dceef8 100%);
@@ -799,6 +803,10 @@ body.scan-kiosk-page {
 
 .scan-status-badge.scan-status-out {
   background: #dc2626;
+}
+
+.scan-status-badge.scan-status-late {
+  background: #d97706;
 }
 
 .scan-name-timestamp {

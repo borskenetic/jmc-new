@@ -9,6 +9,7 @@
         $attendanceChildren[] = ['label' => 'Face Gate Terminal', 'route' => 'attendance.face', 'patterns' => ['attendance.face', 'attendance.face.identify'], 'icon' => 'scan', 'target' => '_blank'];
     }
     $attendanceChildren[] = ['label' => 'Offline Gate Devices', 'route' => 'gate_devices.index', 'patterns' => ['gate_devices.*'], 'icon' => 'settings'];
+    $attendanceChildren[] = ['label' => 'IN / OUT schedule', 'route' => 'attendance.schedule.settings', 'patterns' => ['attendance.schedule.*'], 'icon' => 'clock'];
     $attendanceChildren[] = ['label' => 'Manage Video', 'route' => 'attendance.changeVideo', 'patterns' => ['attendance.changeVideo', 'attendance.uploadVideo'], 'icon' => 'settings'];
 
     $reportsChildren = [
@@ -28,7 +29,7 @@
         [
             'label'    => 'Attendance',
             'icon'     => 'calendar-check',
-            'patterns' => ['attendance.scan', 'attendance.face', 'attendance.face.identify', 'attendance.process', 'attendance.section', 'attendance.changeVideo', 'attendance.uploadVideo', 'gate_devices.*'],
+            'patterns' => ['attendance.scan', 'attendance.face', 'attendance.face.identify', 'attendance.process', 'attendance.section', 'attendance.changeVideo', 'attendance.uploadVideo', 'attendance.schedule.*', 'gate_devices.*'],
             'children' => $attendanceChildren,
         ],
         [

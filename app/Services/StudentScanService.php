@@ -164,6 +164,7 @@ class StudentScanService
             'section' => $section,
             'gate' => $gate,
             'status' => $status,
+            'is_late' => $status === 'IN' && app(StudentAttendanceSchedule::class)->isLate($scannedAt),
             'scanned_at' => $scannedAt,
             'client_uuid' => $clientUuid,
             'gate_device_id' => $gateDevice->id,

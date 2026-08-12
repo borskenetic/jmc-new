@@ -215,6 +215,7 @@
                         <th>Section</th>
                         <th>Gate</th>
                         <th>Status</th>
+                        <th>Designation</th>
                         <th>Scanned</th>
                     </tr>
                 </thead>
@@ -254,6 +255,13 @@
                                     <span class="al-status al-status--out">OUT</span>
                                 @else
                                     <span class="al-status al-status--muted">{{ $status ?: '—' }}</span>
+                                @endif
+                            </td>
+                            <td data-label="Designation">
+                                @if($status === 'IN' && $log->is_late)
+                                    <span class="al-status al-status--late">LATE</span>
+                                @else
+                                    <span class="al-status al-status--muted">—</span>
                                 @endif
                             </td>
                             <td data-label="Scanned">

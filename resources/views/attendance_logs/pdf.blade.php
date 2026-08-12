@@ -21,6 +21,7 @@
                 <th>Section</th>
                 <th>Gate</th>
                 <th>Status</th>
+                <th>Designation</th>
                 <th>Scanned At</th>
             </tr>
         </thead>
@@ -33,6 +34,7 @@
                     <td>{{ $log->section ?? '—' }}</td>
                     <td>{{ $log->gate ?? '—' }}</td>
                     <td>{{ strtoupper($log->status) }}</td>
+                    <td>{{ ($log->status === 'IN' && $log->is_late) ? 'LATE' : '—' }}</td>
                     <td>
                         {{ $log->scanned_at?->format('Y-m-d h:i A') ?? '—' }}
                     </td>

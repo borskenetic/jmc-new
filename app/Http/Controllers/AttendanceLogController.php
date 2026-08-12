@@ -135,11 +135,20 @@ class AttendanceLogController extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
-            'status' => 'required|in:in,out',
+            'status' => 'required|in:in,out,IN,OUT',
             'scanned_at' => 'required|date',
         ]);
 
-        AttendanceLog::create($request->only(['student_id', 'status', 'scanned_at']));
+        $status = strtoupper((string) $request->input('status'));
+        $scannedAt = \Carbon\Carbon::parse($request->input('scanned_at'));
+        $isLate = $status === 'IN' && app(\App\Services\StudentAttendanceSchedule::class)->isLate($scannedAt);
+
+        AttendanceLog::create([
+            'student_id' => $request->input('student_id'),
+            'status' => $status,
+            'is_late' => $isLate,
+            'scanned_at' => $scannedAt,
+        ]);
 
         return redirect()->route('attendance_logs.index')
             ->with('success', 'Attendance logged!');

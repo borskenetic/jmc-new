@@ -16,6 +16,14 @@ class Setting extends Model
 
     public const KEY_SCAN_SMS = 'scan_sms';
 
+    public const KEY_STUDENT_ATTENDANCE_SCHEDULE = 'student_attendance_schedule';
+
+    public const DEFAULT_STUDENT_ATTENDANCE_SCHEDULE = [
+        'in_time' => '07:30',
+        'out_time' => '14:00',
+        'grace_minutes' => 10,
+    ];
+
     public const DEFAULT_GATE_TERMINALS = [
         'Main Gate',
         'North Gate',
@@ -156,6 +164,64 @@ class Setting extends Model
         static::updateOrCreate(
             ['key' => self::KEY_GATE_TERMINALS],
             ['value' => json_encode($gates, JSON_UNESCAPED_UNICODE)]
+        );
+    }
+
+    /**
+     * @return array{in_time: string, out_time: string, grace_minutes: int}
+     */
+    public static function studentAttendanceSchedule(): array
+    {
+        $defaults = [
+            'in_time' => (string) config(
+                'attendance.schedule.in_time',
+                self::DEFAULT_STUDENT_ATTENDANCE_SCHEDULE['in_time']
+            ),
+            'out_time' => (string) config(
+                'attendance.schedule.out_time',
+                self::DEFAULT_STUDENT_ATTENDANCE_SCHEDULE['out_time']
+            ),
+            'grace_minutes' => (int) config(
+                'attendance.schedule.grace_minutes',
+                self::DEFAULT_STUDENT_ATTENDANCE_SCHEDULE['grace_minutes']
+            ),
+        ];
+
+        $raw = static::where('key', self::KEY_STUDENT_ATTENDANCE_SCHEDULE)->value('value');
+        if ($raw === null) {
+            return $defaults;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (! is_array($decoded)) {
+            return $defaults;
+        }
+
+        return [
+            'in_time' => isset($decoded['in_time']) && is_string($decoded['in_time']) && $decoded['in_time'] !== ''
+                ? $decoded['in_time']
+                : $defaults['in_time'],
+            'out_time' => isset($decoded['out_time']) && is_string($decoded['out_time']) && $decoded['out_time'] !== ''
+                ? $decoded['out_time']
+                : $defaults['out_time'],
+            'grace_minutes' => array_key_exists('grace_minutes', $decoded)
+                ? (int) $decoded['grace_minutes']
+                : $defaults['grace_minutes'],
+        ];
+    }
+
+    /**
+     * @param  array{in_time: string, out_time: string, grace_minutes: int}  $schedule
+     */
+    public static function setStudentAttendanceSchedule(array $schedule): void
+    {
+        static::updateOrCreate(
+            ['key' => self::KEY_STUDENT_ATTENDANCE_SCHEDULE],
+            ['value' => json_encode([
+                'in_time' => $schedule['in_time'],
+                'out_time' => $schedule['out_time'],
+                'grace_minutes' => (int) $schedule['grace_minutes'],
+            ], JSON_UNESCAPED_UNICODE)]
         );
     }
 }

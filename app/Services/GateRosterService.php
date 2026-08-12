@@ -94,6 +94,7 @@ class GateRosterService
             ],
             'scan_cooldown_minutes' => (int) config('attendance.scan_cooldown_minutes', 10),
             'timezone' => $this->departure->timezone(),
+            'student_schedule' => app(StudentAttendanceSchedule::class)->toArray(),
         ];
     }
 

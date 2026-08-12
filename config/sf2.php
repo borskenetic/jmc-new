@@ -32,8 +32,12 @@ return [
   /*
   | School-wide gate: first IN after this time (plus grace) counts as tardy.
   */
-  'class_start_time' => env('SF2_CLASS_START_TIME', '07:30'),
-  'tardy_grace_minutes' => (int) env('SF2_TARDY_GRACE_MINUTES', 15),
+  /*
+  | Defaults only — live tardy cutoff uses StudentAttendanceSchedule
+  | (admin-editable attendance schedule; falls back to these / env).
+  */
+  'class_start_time' => env('SF2_CLASS_START_TIME', env('ATTENDANCE_IN_TIME', '07:30')),
+  'tardy_grace_minutes' => (int) env('SF2_TARDY_GRACE_MINUTES', env('ATTENDANCE_GRACE_MINUTES', 10)),
 
   'month_names' => [
     1 => 'January',

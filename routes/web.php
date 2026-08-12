@@ -94,6 +94,8 @@ Route::middleware(['auth', 'can:isAdminOrStaff', LogAdminActivity::class])->grou
     Route::post('/attendance/upload-video', [AttendanceController::class, 'uploadVideo'])->name('attendance.uploadVideo');
     Route::get('/attendance/logout-feedback', [AttendanceController::class, 'feedbackSettings'])->name('attendance.feedback.settings');
     Route::post('/attendance/logout-feedback', [AttendanceController::class, 'updateFeedbackSettings'])->name('attendance.feedback.settings.update');
+    Route::get('/attendance/schedule', [AttendanceController::class, 'scheduleSettings'])->name('attendance.schedule.settings');
+    Route::post('/attendance/schedule', [AttendanceController::class, 'updateScheduleSettings'])->name('attendance.schedule.settings.update');
 
     Route::get('/gate-devices', [GateDeviceController::class, 'index'])->name('gate_devices.index');
     Route::post('/gate-devices', [GateDeviceController::class, 'store'])->name('gate_devices.store');

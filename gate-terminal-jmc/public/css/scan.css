@@ -189,6 +189,10 @@ body {
       background: #ef4444; /* Red for OUT status */
     }
 
+    .status-button.status-late {
+      background: #d97706;
+    }
+
     .right-content {
       flex: 1;
       background: #151515;

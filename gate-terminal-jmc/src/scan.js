@@ -163,6 +163,23 @@ function previewScan(rawToken) {
   };
 }
 
+function isLateAt(scannedAtIso, settings) {
+  const schedule = settings?.student_schedule || {};
+  const inTime = String(schedule.in_time || '07:30');
+  const grace = Math.max(0, Number(schedule.grace_minutes ?? 10) || 0);
+  const [hh, mm] = inTime.split(':').map((n) => Number(n));
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) {
+    return false;
+  }
+
+  const scanned = new Date(scannedAtIso);
+  const cutoff = new Date(scanned);
+  cutoff.setHours(hh, mm, 0, 0);
+  cutoff.setMinutes(cutoff.getMinutes() + grace);
+
+  return scanned.getTime() > cutoff.getTime();
+}
+
 function recordScan(rawToken, section = null) {
   const preview = previewScan(rawToken);
   if (preview.type === 'scan_cooldown') {
@@ -185,6 +202,7 @@ function recordScan(rawToken, section = null) {
   const status = preview.next_status;
   const scannedAt = manilaLocalIso();
   const clientUuid = uuidv4();
+  const isLate = status === 'IN' && isLateAt(scannedAt, settings);
 
   insertLocalLog({
     client_uuid: clientUuid,
@@ -201,6 +219,8 @@ function recordScan(rawToken, section = null) {
 
   return {
     status,
+    is_late: isLate,
+    designation: isLate ? 'LATE' : null,
     scanned_at: formatDisplayTime(scannedAt),
     client_uuid: clientUuid,
     logout_feedback_enabled: Boolean(settings.logout_feedback_enabled),

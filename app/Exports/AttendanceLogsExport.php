@@ -25,6 +25,7 @@ class AttendanceLogsExport implements FromCollection, WithHeadings
                 'section'     => $log->section ?? '—',
                 'gate'        => $log->gate ?? '—',
                 'status'      => strtoupper($log->status),
+                'designation' => ($log->status === 'IN' && $log->is_late) ? 'LATE' : '—',
                 'scanned_at'  => $log->scanned_at?->format('Y-m-d h:i A') ?? '—',
             ];
         });
@@ -39,6 +40,7 @@ class AttendanceLogsExport implements FromCollection, WithHeadings
             'Section',
             'Gate',
             'Status',
+            'Designation',
             'Scanned At',
         ];
     }

@@ -535,6 +535,11 @@
     color: #b91c1c;
 }
 
+.al-status--late {
+    background: rgba(217, 119, 6, 0.14);
+    color: #b45309;
+}
+
 .al-status--muted {
     background: #f1f5f9;
     color: #64748b;

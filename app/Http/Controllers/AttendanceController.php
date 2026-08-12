@@ -11,6 +11,7 @@ use App\Models\VisitorLog;
 use App\Services\AttendanceSessionService;
 use App\Services\FaceMatchService;
 use App\Services\GateTerminalService;
+use App\Services\StudentAttendanceSchedule;
 use App\Services\StudentDeparturePolicy;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -123,6 +124,35 @@ class AttendanceController extends Controller
         return back()->with(
             'success',
             'Saved '.count($gateList).' gate(s). Kiosks will only show gates not already in use.'
+        );
+    }
+
+    public function scheduleSettings(StudentAttendanceSchedule $schedule)
+    {
+        return view('attendance.schedule_settings', [
+            'inTime' => $schedule->inTime(),
+            'outTime' => $schedule->outTime(),
+            'graceMinutes' => $schedule->graceMinutes(),
+            'inTimeLabel' => $schedule->inTimeLabel(),
+            'outTimeLabel' => $schedule->outTimeLabel(),
+            'lateCutoffLabel' => $schedule->lateCutoffLabel(),
+        ]);
+    }
+
+    public function updateScheduleSettings(Request $request, StudentAttendanceSchedule $schedule)
+    {
+        $validated = $request->validate([
+            'in_time' => ['required', 'date_format:H:i'],
+            'out_time' => ['required', 'date_format:H:i'],
+            'grace_minutes' => ['required', 'integer', 'min:0', 'max:180'],
+        ]);
+
+        $schedule->update($validated);
+
+        return back()->with(
+            'success',
+            'Student attendance schedule saved. Late starts after '.$schedule->lateCutoffLabel()
+            .' (IN '.$schedule->inTimeLabel().' + '.$schedule->graceMinutes().' min grace). OUT is '.$schedule->outTimeLabel().'.'
         );
     }
 
@@ -303,12 +333,16 @@ class AttendanceController extends Controller
             ], 403);
         }
 
+        $scannedAt = now();
+        $isLate = $newStatus === 'IN' && app(StudentAttendanceSchedule::class)->isLate($scannedAt);
+
         $log = AttendanceLog::create([
             'student_id' => $student->id,
             'section' => $section,
             'gate' => null,
             'status' => $newStatus,
-            'scanned_at' => now(),
+            'is_late' => $isLate,
+            'scanned_at' => $scannedAt,
         ]);
 
         try {
@@ -319,6 +353,8 @@ class AttendanceController extends Controller
 
         return response()->json([
             'status' => $newStatus,
+            'is_late' => $isLate,
+            'designation' => $isLate ? 'LATE' : null,
             'scanned_at' => $log->scanned_at->format('Y-m-d h:i:s A'),
             'logout_feedback_enabled' => $this->effectiveLogoutFeedbackEnabled(),
         ]);
