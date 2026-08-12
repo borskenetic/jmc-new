@@ -21,6 +21,7 @@ return [
         'in_time' => env('ATTENDANCE_IN_TIME', env('SF2_CLASS_START_TIME', '07:30')),
         'out_time' => env('ATTENDANCE_OUT_TIME', '14:00'),
         'grace_minutes' => (int) env('ATTENDANCE_GRACE_MINUTES', env('SF2_TARDY_GRACE_MINUTES', 10)),
+        'out_allowed_from' => env('ATTENDANCE_OUT_ALLOWED_FROM', '11:00'),
         'timezone' => env('APP_TIMEZONE', 'Asia/Manila'),
     ],
 

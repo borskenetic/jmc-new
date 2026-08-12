@@ -21,6 +21,7 @@ class Student extends Model
         'section',
         'sex',
         'educational_level',
+        'class_session',
         'profile_picture',
         'face_descriptor',
         'face_enrolled_at',

@@ -159,12 +159,37 @@ class StudentScanService
             throw new \InvalidArgumentException('Invalid scan status.');
         }
 
+        $schedule = app(StudentAttendanceSchedule::class);
+        $date = $scannedAt->copy()->timezone($schedule->timezone())->toDateString();
+
+        // One IN and one OUT per student per day (idempotent with first scan of that type).
+        $existingSameDay = AttendanceLog::query()
+            ->where('student_id', $student->id)
+            ->where('status', $status)
+            ->whereDate('scanned_at', $date)
+            ->orderBy('scanned_at')
+            ->orderBy('id')
+            ->first();
+        if ($existingSameDay) {
+            return $existingSameDay;
+        }
+
+        if ($status === 'OUT' && ! $schedule->isOutAllowed($scannedAt)) {
+            throw new \InvalidArgumentException('Check-out is only allowed from '.$schedule->outAllowedFromLabel().' onward.');
+        }
+
+        if ($status === 'OUT' && ! $schedule->hasStatusOnDate($student->id, 'IN', $date)) {
+            throw new \InvalidArgumentException('Cannot record OUT before an IN for the same day.');
+        }
+
+        $isLate = $status === 'IN' && $schedule->isLate($scannedAt, $student);
+
         $log = AttendanceLog::create([
             'student_id' => $student->id,
             'section' => $section,
             'gate' => $gate,
             'status' => $status,
-            'is_late' => $status === 'IN' && app(StudentAttendanceSchedule::class)->isLate($scannedAt),
+            'is_late' => $isLate,
             'scanned_at' => $scannedAt,
             'client_uuid' => $clientUuid,
             'gate_device_id' => $gateDevice->id,
@@ -172,7 +197,7 @@ class StudentScanService
         ]);
 
         try {
-            $this->sendScanSms($student, $status, $scannedAt);
+            $this->sendScanSms($student, $isLate ? 'LATE' : $status, $scannedAt);
         } catch (\Throwable $e) {
             report($e);
         }

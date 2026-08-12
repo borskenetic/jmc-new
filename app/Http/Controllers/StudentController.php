@@ -220,6 +220,7 @@ class StudentController extends Controller
             'midname' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
             'educational_level' => PatronOptions::educationalLevelRule(),
+            'class_session' => 'nullable|in:day,evening',
             'course' => 'required_if:educational_level,college|required_if:educational_level,high_school_senior|nullable|string|max:255',
             'year' => [
                 'required',
@@ -242,6 +243,12 @@ class StudentController extends Controller
 
         if (array_key_exists('rfid', $validated) && $validated['rfid'] === '') {
             $validated['rfid'] = null;
+        }
+
+        if (($validated['educational_level'] ?? '') === 'high_school_senior') {
+            $validated['class_session'] = $validated['class_session'] ?? 'day';
+        } else {
+            $validated['class_session'] = null;
         }
 
         // Handle profile picture upload
@@ -318,6 +325,7 @@ class StudentController extends Controller
             'midname' => 'nullable|string|max:255',
             'birth_date' => 'nullable|date',
             'educational_level' => PatronOptions::educationalLevelRule(),
+            'class_session' => 'nullable|in:day,evening',
             'course' => 'required_if:educational_level,college|required_if:educational_level,high_school_senior|nullable|string|max:255',
             'year' => [
                 'required',
@@ -339,6 +347,12 @@ class StudentController extends Controller
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'student_signature' => 'nullable|string',
         ]);
+
+        if (($validated['educational_level'] ?? '') === 'high_school_senior') {
+            $validated['class_session'] = $validated['class_session'] ?? 'day';
+        } else {
+            $validated['class_session'] = null;
+        }
     
         /*
         |--------------------------------------------------------------------------

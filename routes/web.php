@@ -94,8 +94,6 @@ Route::middleware(['auth', 'can:isAdminOrStaff', LogAdminActivity::class])->grou
     Route::post('/attendance/upload-video', [AttendanceController::class, 'uploadVideo'])->name('attendance.uploadVideo');
     Route::get('/attendance/logout-feedback', [AttendanceController::class, 'feedbackSettings'])->name('attendance.feedback.settings');
     Route::post('/attendance/logout-feedback', [AttendanceController::class, 'updateFeedbackSettings'])->name('attendance.feedback.settings.update');
-    Route::get('/attendance/schedule', [AttendanceController::class, 'scheduleSettings'])->name('attendance.schedule.settings');
-    Route::post('/attendance/schedule', [AttendanceController::class, 'updateScheduleSettings'])->name('attendance.schedule.settings.update');
 
     Route::get('/gate-devices', [GateDeviceController::class, 'index'])->name('gate_devices.index');
     Route::post('/gate-devices', [GateDeviceController::class, 'store'])->name('gate_devices.store');
@@ -141,6 +139,10 @@ Route::middleware(['auth', 'can:isAdminOrStaff', LogAdminActivity::class])->grou
 // Admin only
 Route::middleware(['auth', 'can:isAdmin', LogAdminActivity::class])->group(function () {
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity_logs.index');
+
+    Route::get('/attendance/schedule', [AttendanceController::class, 'scheduleSettings'])->name('attendance.schedule.settings');
+    Route::post('/attendance/schedule', [AttendanceController::class, 'updateScheduleSettings'])->name('attendance.schedule.settings.update');
+    Route::post('/attendance/schedule/backfill-late', [AttendanceController::class, 'backfillLateFlags'])->name('attendance.schedule.backfill');
 
     Route::get('/register-student', [StudentController::class, 'create'])->name('students.create');
     Route::post('/register-student', [StudentController::class, 'store'])->name('students.store');

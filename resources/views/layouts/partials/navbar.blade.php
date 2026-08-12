@@ -18,7 +18,7 @@
         @auth
             @can('isAdminOrStaff')
                 <div class="nav-dropdown">
-                    <button type="button" class="nav-dropdown-button {{ $dropActive(['attendance.scan', 'attendance.face', 'attendance.process', 'attendance.section', 'attendance.changeVideo', 'attendance.uploadVideo', 'attendance.schedule.*', 'gate_devices.*']) }}">
+                    <button type="button" class="nav-dropdown-button {{ $dropActive(['attendance.scan', 'attendance.face', 'attendance.process', 'attendance.section', 'attendance.changeVideo', 'attendance.uploadVideo', 'gate_devices.*']) }}">
                         Attendance
                     </button>
                     <div class="nav-dropdown-content">
@@ -27,7 +27,6 @@
                             <a href="{{ route('attendance.face') }}" target="_blank" rel="noopener" class="{{ $linkActive(['attendance.face']) }}">Face Gate Terminal</a>
                         @endif
                         <a href="{{ route('gate_devices.index') }}" class="{{ $linkActive(['gate_devices.*']) }}">Offline Gate Devices</a>
-                        <a href="{{ route('attendance.schedule.settings') }}" class="{{ $linkActive(['attendance.schedule.*']) }}">IN / OUT schedule</a>
                         <a href="{{ route('attendance.changeVideo') }}" class="{{ $linkActive(['attendance.changeVideo', 'attendance.uploadVideo']) }}">Manage Video</a>
                     </div>
                 </div>
@@ -67,11 +66,12 @@
 
                 @can('isAdmin')
                     <div class="nav-dropdown">
-                        <button type="button" class="nav-dropdown-button {{ $dropActive(['users.*', 'school-setup.*', 'prospectus.*', 'files.*', 'activity_logs.*']) }}">
+                        <button type="button" class="nav-dropdown-button {{ $dropActive(['users.*', 'school-setup.*', 'prospectus.*', 'files.*', 'activity_logs.*', 'attendance.schedule.*']) }}">
                             Admin
                         </button>
                         <div class="nav-dropdown-content">
                             <a href="{{ route('school-setup.index') }}" class="{{ $linkActive(['school-setup.*', 'prospectus.*']) }}">School Setup</a>
+                            <a href="{{ route('attendance.schedule.settings') }}" class="{{ $linkActive(['attendance.schedule.*']) }}">IN / OUT schedule</a>
                             <a href="{{ route('files.index') }}" class="{{ $linkActive(['files.*']) }}">Files</a>
                             <a href="{{ route('activity_logs.index') }}" class="{{ $linkActive(['activity_logs.*']) }}">Activity Log</a>
                             <a href="{{ route('users.create') }}" class="{{ $linkActive(['users.create', 'users.store']) }}">Create Account</a>

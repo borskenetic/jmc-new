@@ -48,6 +48,7 @@ class AttendanceSessionService
         AttendanceLog::create([
             'student_id' => $student->id,
             'status' => 'OUT',
+            'is_late' => false,
             'scanned_at' => $outAt,
         ]);
 

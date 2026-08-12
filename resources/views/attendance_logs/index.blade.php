@@ -65,6 +65,10 @@
             <span class="al-stat-card__label">Check-ins</span>
             <strong class="al-stat-card__value">{{ number_format($summary['in']) }}</strong>
         </div>
+        <div class="al-stat-card al-stat-card--late">
+            <span class="al-stat-card__label">Late</span>
+            <strong class="al-stat-card__value">{{ number_format($summary['late'] ?? 0) }}</strong>
+        </div>
         <div class="al-stat-card al-stat-card--out">
             <span class="al-stat-card__label">Check-outs</span>
             <strong class="al-stat-card__value">{{ number_format($summary['out']) }}</strong>
@@ -108,6 +112,8 @@
                            class="al-pill {{ $currentStatus === '' ? 'is-active' : '' }}">All</a>
                         <a href="{{ $filterUrl(['status' => 'IN']) }}"
                            class="al-pill al-pill--in {{ $currentStatus === 'IN' ? 'is-active' : '' }}">IN</a>
+                        <a href="{{ $filterUrl(['status' => 'LATE']) }}"
+                           class="al-pill al-pill--late {{ $currentStatus === 'LATE' ? 'is-active' : '' }}">LATE</a>
                         <a href="{{ $filterUrl(['status' => 'OUT']) }}"
                            class="al-pill al-pill--out {{ $currentStatus === 'OUT' ? 'is-active' : '' }}">OUT</a>
                     </div>
@@ -215,7 +221,6 @@
                         <th>Section</th>
                         <th>Gate</th>
                         <th>Status</th>
-                        <th>Designation</th>
                         <th>Scanned</th>
                     </tr>
                 </thead>
@@ -224,6 +229,7 @@
                         @php
                             $student = $log->student;
                             $status = strtoupper((string) $log->status);
+                            $isLate = $status === 'IN' && $log->is_late;
                             $initials = $student
                                 ? strtoupper(substr($student->firstname ?? '', 0, 1).substr($student->lastname ?? '', 0, 1))
                                 : '?';
@@ -249,19 +255,14 @@
                             <td data-label="Section">{{ $log->section ?? ($student?->section ?? '—') }}</td>
                             <td data-label="Gate">{{ $log->gate ?? '—' }}</td>
                             <td data-label="Status">
-                                @if($status === 'IN')
+                                @if($isLate)
+                                    <span class="al-status al-status--late">LATE</span>
+                                @elseif($status === 'IN')
                                     <span class="al-status al-status--in">IN</span>
                                 @elseif($status === 'OUT')
                                     <span class="al-status al-status--out">OUT</span>
                                 @else
                                     <span class="al-status al-status--muted">{{ $status ?: '—' }}</span>
-                                @endif
-                            </td>
-                            <td data-label="Designation">
-                                @if($status === 'IN' && $log->is_late)
-                                    <span class="al-status al-status--late">LATE</span>
-                                @else
-                                    <span class="al-status al-status--muted">—</span>
                                 @endif
                             </td>
                             <td data-label="Scanned">
@@ -277,7 +278,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5">
+                            <td colspan="6">
                                 <div class="al-empty">
                                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
                                     <p class="al-empty__title">No records found</p>

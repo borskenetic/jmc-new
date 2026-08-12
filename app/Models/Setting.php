@@ -168,7 +168,7 @@ class Setting extends Model
     }
 
     /**
-     * @return array{in_time: string, out_time: string, grace_minutes: int}
+     * @return array<string, mixed>
      */
     public static function studentAttendanceSchedule(): array
     {
@@ -193,35 +193,18 @@ class Setting extends Model
         }
 
         $decoded = json_decode($raw, true);
-        if (! is_array($decoded)) {
-            return $defaults;
-        }
 
-        return [
-            'in_time' => isset($decoded['in_time']) && is_string($decoded['in_time']) && $decoded['in_time'] !== ''
-                ? $decoded['in_time']
-                : $defaults['in_time'],
-            'out_time' => isset($decoded['out_time']) && is_string($decoded['out_time']) && $decoded['out_time'] !== ''
-                ? $decoded['out_time']
-                : $defaults['out_time'],
-            'grace_minutes' => array_key_exists('grace_minutes', $decoded)
-                ? (int) $decoded['grace_minutes']
-                : $defaults['grace_minutes'],
-        ];
+        return is_array($decoded) ? array_merge($defaults, $decoded) : $defaults;
     }
 
     /**
-     * @param  array{in_time: string, out_time: string, grace_minutes: int}  $schedule
+     * @param  array<string, mixed>  $schedule
      */
     public static function setStudentAttendanceSchedule(array $schedule): void
     {
         static::updateOrCreate(
             ['key' => self::KEY_STUDENT_ATTENDANCE_SCHEDULE],
-            ['value' => json_encode([
-                'in_time' => $schedule['in_time'],
-                'out_time' => $schedule['out_time'],
-                'grace_minutes' => (int) $schedule['grace_minutes'],
-            ], JSON_UNESCAPED_UNICODE)]
+            ['value' => json_encode($schedule, JSON_UNESCAPED_UNICODE)]
         );
     }
 }

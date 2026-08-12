@@ -30,8 +30,28 @@ function manilaLocalIso(date = new Date()) {
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+08:00`;
 }
 
+function manilaParts(date = new Date()) {
+  return Object.fromEntries(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: TZ,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    })
+      .formatToParts(date)
+      .map((p) => [p.type, p.value])
+  );
+}
+
 function isInStatus(status) {
   return status != null && String(status).trim().toLowerCase() === 'in';
+}
+
+function isOutStatus(status) {
+  return status != null && String(status).trim().toLowerCase() === 'out';
 }
 
 function startOfDay(date) {
@@ -44,6 +64,12 @@ function endOfDay(date) {
   const d = new Date(date);
   d.setHours(23, 59, 59, 999);
   return d;
+}
+
+function sameManilaDay(a, b) {
+  const pa = manilaParts(a);
+  const pb = manilaParts(b);
+  return pa.year === pb.year && pa.month === pb.month && pa.day === pb.day;
 }
 
 function closeStaleOpenIn(student) {
@@ -130,6 +156,59 @@ function studentPayload(student) {
   };
 }
 
+function outAllowedFrom(settings) {
+  return String(settings?.student_schedule?.out_allowed_from || '11:00');
+}
+
+function outAllowedFromLabel(settings) {
+  const [hh, mm] = outAllowedFrom(settings).split(':').map((n) => Number(n));
+  const d = new Date();
+  d.setHours(hh || 11, mm || 0, 0, 0);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function isOutAllowedNow(settings, at = new Date()) {
+  const [hh, mm] = outAllowedFrom(settings).split(':').map((n) => Number(n));
+  const parts = manilaParts(at);
+  const minutesNow = Number(parts.hour) * 60 + Number(parts.minute);
+  const minutesAllowed = (Number.isFinite(hh) ? hh : 11) * 60 + (Number.isFinite(mm) ? mm : 0);
+  return minutesNow >= minutesAllowed;
+}
+
+/** One IN + one OUT per student per day. */
+function dailyDecision(student, settings, at = new Date()) {
+  const lastAt = student.last_log_scanned_at ? new Date(student.last_log_scanned_at) : null;
+  const lastToday = lastAt && !Number.isNaN(lastAt.getTime()) && sameManilaDay(lastAt, at);
+
+  if (!lastToday || !student.last_log_status) {
+    return { next_status: 'IN', blocked: false };
+  }
+
+  if (isInStatus(student.last_log_status)) {
+    if (!isOutAllowedNow(settings, at)) {
+      return {
+        next_status: 'OUT',
+        blocked: true,
+        type: 'out_too_early',
+        message: `Check-out is only allowed from ${outAllowedFromLabel(settings)} onward.`,
+        allowed_after: outAllowedFromLabel(settings),
+      };
+    }
+    return { next_status: 'OUT', blocked: false };
+  }
+
+  if (isOutStatus(student.last_log_status)) {
+    return {
+      next_status: null,
+      blocked: true,
+      type: 'already_complete',
+      message: 'This student already has IN and OUT recorded for today.',
+    };
+  }
+
+  return { next_status: 'IN', blocked: false };
+}
+
 function previewScan(rawToken) {
   const settings = getSettings();
 
@@ -149,12 +228,26 @@ function previewScan(rawToken) {
     return cooldown;
   }
 
-  const lastIn = isInStatus(student.last_log_status);
-  const nextStatus = lastIn ? 'OUT' : 'IN';
+  const decision = dailyDecision(student, settings);
+  if (decision.blocked) {
+    if (decision.type === 'out_too_early') {
+      return {
+        type: 'early_out_blocked',
+        message: decision.message,
+        allowed_after: decision.allowed_after,
+        student: studentPayload(student),
+      };
+    }
+    return {
+      type: 'error',
+      message: decision.message || 'Scan not allowed.',
+      student: studentPayload(student),
+    };
+  }
 
   return {
     type: 'student',
-    next_status: nextStatus,
+    next_status: decision.next_status,
     student_id: student.cloud_id,
     section_picker_enabled: Boolean(settings.section_picker_enabled),
     logout_feedback_enabled: Boolean(settings.logout_feedback_enabled),
@@ -185,6 +278,12 @@ function recordScan(rawToken, section = null) {
   if (preview.type === 'scan_cooldown') {
     const err = new Error(preview.message || 'Please wait before scanning again.');
     err.code = 'scan_cooldown';
+    err.payload = preview;
+    throw err;
+  }
+  if (preview.type === 'early_out_blocked') {
+    const err = new Error(preview.message || 'Check-out not allowed yet.');
+    err.code = 'early_out_blocked';
     err.payload = preview;
     throw err;
   }

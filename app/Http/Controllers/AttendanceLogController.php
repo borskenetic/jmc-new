@@ -68,7 +68,7 @@ class AttendanceLogController extends Controller
         ));
     }
 
-    /** @return array{total: int, in: int, out: int, today: int} */
+    /** @return array{total: int, in: int, late: int, out: int, today: int} */
     private function summaryForQuery($query): array
     {
         $tz = config('app.timezone', 'Asia/Manila');
@@ -77,6 +77,7 @@ class AttendanceLogController extends Controller
         return [
             'total' => (clone $query)->count(),
             'in' => (clone $query)->where('status', 'IN')->count(),
+            'late' => (clone $query)->where('status', 'IN')->where('is_late', true)->count(),
             'out' => (clone $query)->where('status', 'OUT')->count(),
             'today' => (clone $query)->whereDate('scanned_at', $today)->count(),
         ];
@@ -84,6 +85,8 @@ class AttendanceLogController extends Controller
 
     private function filteredLogs(Request $request)
     {
+        $status = strtoupper((string) $request->status);
+
         return AttendanceLog::with('student')
 
             ->when($request->from,
@@ -102,8 +105,18 @@ class AttendanceLogController extends Controller
                     fn ($q2) => $q2->where('section', $request->homeroom_section)
                 ))
 
-            ->when($request->status,
-                fn ($q) => $q->where('status', strtoupper((string) $request->status))
+            ->when($status === 'LATE',
+                fn ($q) => $q->where('status', 'IN')->where('is_late', true)
+            )
+
+            ->when($status === 'IN',
+                fn ($q) => $q->where('status', 'IN')->where(function ($q2) {
+                    $q2->where('is_late', false)->orWhereNull('is_late');
+                })
+            )
+
+            ->when($status === 'OUT',
+                fn ($q) => $q->where('status', 'OUT')
             )
 
             ->when($request->gate && Schema::hasColumn('attendance_logs', 'gate'),
@@ -141,7 +154,10 @@ class AttendanceLogController extends Controller
 
         $status = strtoupper((string) $request->input('status'));
         $scannedAt = \Carbon\Carbon::parse($request->input('scanned_at'));
-        $isLate = $status === 'IN' && app(\App\Services\StudentAttendanceSchedule::class)->isLate($scannedAt);
+        $isLate = $status === 'IN' && app(\App\Services\StudentAttendanceSchedule::class)->isLate(
+            $scannedAt,
+            Student::find($request->input('student_id'))
+        );
 
         AttendanceLog::create([
             'student_id' => $request->input('student_id'),

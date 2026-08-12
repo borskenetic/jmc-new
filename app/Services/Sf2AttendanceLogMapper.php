@@ -94,10 +94,11 @@ class Sf2AttendanceLogMapper
      * @param  array<string, Carbon>  $firstInByDate
      * @return array{absent_dates: list<string>, tardy_dates: list<string>}
      */
-    public function marksForStudent(array $schoolDays, array $firstInByDate): array
+    public function marksForStudent(array $schoolDays, array $firstInByDate, ?Student $student = null): array
     {
         $absent = [];
         $tardy = [];
+        $schedule = app(StudentAttendanceSchedule::class);
 
         foreach ($schoolDays as $date) {
             $scannedAt = $firstInByDate[$date] ?? null;
@@ -108,7 +109,7 @@ class Sf2AttendanceLogMapper
                 continue;
             }
 
-            if ($scannedAt->gt($this->tardyCutoffForDate($date))) {
+            if ($scannedAt->gt($schedule->lateCutoffForDate($date, $student))) {
                 $tardy[] = $date;
             }
         }
@@ -161,7 +162,8 @@ class Sf2AttendanceLogMapper
 
             $marks = $this->marksForStudent(
                 $schoolDays,
-                $firstInMap[$student->id] ?? []
+                $firstInMap[$student->id] ?? [],
+                $student
             );
 
             $students[] = [
@@ -224,5 +226,10 @@ class Sf2AttendanceLogMapper
     protected function tardyCutoffForDate(string $date): Carbon
     {
         return app(StudentAttendanceSchedule::class)->lateCutoffForDate($date);
+    }
+
+    protected function tardyCutoffForStudentDate(string $date, ?Student $student = null): Carbon
+    {
+        return app(StudentAttendanceSchedule::class)->lateCutoffForDate($date, $student);
     }
 }

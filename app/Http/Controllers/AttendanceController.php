@@ -129,30 +129,78 @@ class AttendanceController extends Controller
 
     public function scheduleSettings(StudentAttendanceSchedule $schedule)
     {
+        $groups = [];
+        foreach (StudentAttendanceSchedule::groupKeys() as $key) {
+            $groups[$key] = $schedule->permanentForGroup($key);
+        }
+
         return view('attendance.schedule_settings', [
-            'inTime' => $schedule->inTime(),
-            'outTime' => $schedule->outTime(),
-            'graceMinutes' => $schedule->graceMinutes(),
-            'inTimeLabel' => $schedule->inTimeLabel(),
-            'outTimeLabel' => $schedule->outTimeLabel(),
-            'lateCutoffLabel' => $schedule->lateCutoffLabel(),
+            'groups' => $groups,
+            'temporary' => $schedule->temporary(),
+            'outAllowedFromLabel' => $schedule->outAllowedFromLabel(),
         ]);
     }
 
     public function updateScheduleSettings(Request $request, StudentAttendanceSchedule $schedule)
     {
-        $validated = $request->validate([
-            'in_time' => ['required', 'date_format:H:i'],
-            'out_time' => ['required', 'date_format:H:i'],
-            'grace_minutes' => ['required', 'integer', 'min:0', 'max:180'],
+        $groupRules = [];
+        foreach (StudentAttendanceSchedule::groupKeys() as $key) {
+            $groupRules["groups.{$key}.in_time"] = ['required', 'date_format:H:i'];
+            $groupRules["groups.{$key}.out_time"] = ['required', 'date_format:H:i'];
+            $groupRules["groups.{$key}.grace_minutes"] = ['required', 'integer', 'min:0', 'max:180'];
+        }
+
+        $validated = $request->validate(array_merge($groupRules, [
+            'temporary.enabled' => ['nullable', 'in:0,1'],
+            'temporary.in_time' => ['nullable', 'date_format:H:i'],
+            'temporary.out_time' => ['nullable', 'date_format:H:i'],
+            'temporary.starts_on' => ['nullable', 'date'],
+            'temporary.ends_on' => ['nullable', 'date', 'after_or_equal:temporary.starts_on'],
+            'temporary.apply_to' => ['nullable', 'array'],
+            'temporary.apply_to.*' => ['in:'.implode(',', StudentAttendanceSchedule::groupKeys())],
+        ]));
+
+        $tempEnabled = (string) $request->input('temporary.enabled') === '1';
+        if ($tempEnabled) {
+            $request->validate([
+                'temporary.in_time' => ['required', 'date_format:H:i'],
+                'temporary.out_time' => ['required', 'date_format:H:i'],
+                'temporary.starts_on' => ['required', 'date'],
+                'temporary.ends_on' => ['required', 'date', 'after_or_equal:temporary.starts_on'],
+                'temporary.apply_to' => ['required', 'array', 'min:1'],
+            ]);
+        }
+
+        $schedule->update([
+            'groups' => $validated['groups'] ?? $request->input('groups', []),
+            'temporary' => [
+                'enabled' => $tempEnabled,
+                'in_time' => $request->input('temporary.in_time'),
+                'out_time' => $request->input('temporary.out_time'),
+                'starts_on' => $request->input('temporary.starts_on'),
+                'ends_on' => $request->input('temporary.ends_on'),
+                'apply_to' => $request->input('temporary.apply_to', []),
+            ],
         ]);
 
-        $schedule->update($validated);
+        return back()->with('success', 'Attendance schedule saved.');
+    }
+
+    public function backfillLateFlags(Request $request, StudentAttendanceSchedule $schedule)
+    {
+        $validated = $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
+
+        $result = $schedule->backfillLateFlags(
+            $validated['from'] ?? null,
+            $validated['to'] ?? null
+        );
 
         return back()->with(
             'success',
-            'Student attendance schedule saved. Late starts after '.$schedule->lateCutoffLabel()
-            .' (IN '.$schedule->inTimeLabel().' + '.$schedule->graceMinutes().' min grace). OUT is '.$schedule->outTimeLabel().'.'
+            "Late flags updated on {$result['updated']} of {$result['scanned']} IN record(s)."
         );
     }
 
@@ -248,20 +296,50 @@ class AttendanceController extends Controller
     {
         app(AttendanceSessionService::class)->closeStaleOpenInForStudent($student);
 
-        $sessions = app(AttendanceSessionService::class);
         $lastLog = AttendanceLog::where('student_id', $student->id)
             ->orderByDesc('scanned_at')
             ->orderByDesc('id')
             ->first();
 
-        $nextStatus = ($lastLog && $sessions->isInStatus($lastLog->status)) ? 'OUT' : 'IN';
-
         if ($cooldown = $this->scanCooldownPayload($student, $lastLog)) {
             return $cooldown;
         }
 
+        $schedule = app(StudentAttendanceSchedule::class);
+        $decision = $schedule->dailyScanDecision($student);
+
+        if ($decision['blocked']) {
+            if ($decision['type'] === 'out_too_early') {
+                return [
+                    'type' => 'early_out_blocked',
+                    'message' => $decision['message'],
+                    'allowed_after' => $decision['allowed_after'],
+                    'student' => [
+                        'id' => $student->id,
+                        'firstname' => $student->firstname,
+                        'lastname' => $student->lastname,
+                        'profile_picture' => $student->profile_picture,
+                        'year' => $student->year,
+                        'educational_level' => $student->educational_level?->label()
+                            ?? $student->educational_level,
+                    ],
+                ];
+            }
+
+            return [
+                'type' => 'error',
+                'message' => $decision['message'] ?? 'Scan not allowed.',
+                'student' => [
+                    'id' => $student->id,
+                    'firstname' => $student->firstname,
+                    'lastname' => $student->lastname,
+                    'profile_picture' => $student->profile_picture,
+                ],
+            ];
+        }
+
         $departure = app(StudentDeparturePolicy::class);
-        if ($nextStatus === 'OUT' && $departure->blocksCheckout($student)) {
+        if ($decision['next_status'] === 'OUT' && $departure->blocksCheckout($student)) {
             return [
                 'type' => 'early_out_blocked',
                 'message' => $this->earlyOutMessage($departure),
@@ -280,7 +358,7 @@ class AttendanceController extends Controller
 
         return [
             'type' => 'student',
-            'next_status' => $nextStatus,
+            'next_status' => $decision['next_status'],
             'student_id' => $student->id,
             'logout_feedback_enabled' => $this->effectiveLogoutFeedbackEnabled(),
             'section_picker_enabled' => $this->effectiveSectionPickerEnabled(),
@@ -323,7 +401,19 @@ class AttendanceController extends Controller
             return response()->json($cooldown, 429);
         }
 
-        $newStatus = ($lastLog && $sessions->isInStatus($lastLog->status)) ? 'OUT' : 'IN';
+        $schedule = app(StudentAttendanceSchedule::class);
+        $decision = $schedule->dailyScanDecision($student);
+
+        if ($decision['blocked'] || ! $decision['next_status']) {
+            $code = $decision['type'] === 'out_too_early' ? 403 : 422;
+
+            return response()->json([
+                'message' => $decision['message'] ?? 'Scan not allowed.',
+                'allowed_after' => $decision['allowed_after'],
+            ], $code);
+        }
+
+        $newStatus = $decision['next_status'];
 
         $departure = app(StudentDeparturePolicy::class);
         if ($newStatus === 'OUT' && $departure->blocksCheckout($student)) {
@@ -334,7 +424,7 @@ class AttendanceController extends Controller
         }
 
         $scannedAt = now();
-        $isLate = $newStatus === 'IN' && app(StudentAttendanceSchedule::class)->isLate($scannedAt);
+        $isLate = $newStatus === 'IN' && $schedule->isLate($scannedAt, $student);
 
         $log = AttendanceLog::create([
             'student_id' => $student->id,
@@ -346,7 +436,7 @@ class AttendanceController extends Controller
         ]);
 
         try {
-            $this->sendScanSms($student, $newStatus);
+            $this->sendScanSms($student, $isLate ? 'LATE' : $newStatus);
         } catch (\Throwable $e) {
             report($e);
         }
