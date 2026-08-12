@@ -19,7 +19,7 @@
     <div class="students-page__header">
         <div>
             <h1 class="students-page__title">Students</h1>
-            <p class="students-page__subtitle">Manage records, RFID gate tags, and ID cards.</p>
+            <p class="students-page__subtitle">Manage records and RFID gate tags.</p>
         </div>
         <div class="students-stats">
             <div class="students-stat">
@@ -145,7 +145,6 @@
         'rfidImportTemplateRoute' => 'students.rfid.import.template',
         'rfidImportRoute' => 'students.rfid.import',
         'exportRoute' => route('students.export', request()->query()),
-        'downloadIdsRoute' => route('students.bulk.ids', request()->query()),
     ])
 
     <div class="students-table-card">
@@ -201,16 +200,6 @@
                                 <div class="students-actions">
                                     @can('isAdmin')
                                         <a href="{{ route('students.edit', $student->id) }}" class="btn btn-outline-primary btn-sm">Edit</a>
-                                        <div class="dropdown">
-                                            <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">ID</button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><span class="dropdown-item-text small text-muted">{{ $student->educational_level?->label() ?? 'College' }} card</span></li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item" href="{{ route('idcard.front', $student->id) }}" target="_blank" rel="noopener">Front</a></li>
-                                                <li><a class="dropdown-item" href="{{ route('idcard.back', $student->id) }}" target="_blank" rel="noopener">Back</a></li>
-                                                <li><a class="dropdown-item" href="{{ route('idcard.download', $student->id) }}">Download ZIP</a></li>
-                                            </ul>
-                                        </div>
                                         <form action="{{ route('students.destroy', $student->id) }}" method="POST"
                                               onsubmit="return confirm('Delete this student?');" class="d-inline">
                                             @csrf

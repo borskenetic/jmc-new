@@ -5,7 +5,7 @@
     'importTemplateRoute',
     'importRoute',
     'exportRoute',
-    'downloadIdsRoute',
+    'downloadIdsRoute' => null,
     'rfidImportTemplateRoute' => null,
     'rfidImportRoute' => null,
 ])
@@ -71,7 +71,9 @@
         <div class="patron-panel-body">
             <div class="patron-panel-stack">
                 <a href="{{ $exportRoute }}" class="btn btn-outline-primary btn-sm w-100">Export page</a>
-                <a href="{{ $downloadIdsRoute }}" class="btn btn-success btn-sm w-100">Download IDs</a>
+                @if($downloadIdsRoute)
+                    <a href="{{ $downloadIdsRoute }}" class="btn btn-success btn-sm w-100">Download IDs</a>
+                @endif
             </div>
         </div>
     </details>
