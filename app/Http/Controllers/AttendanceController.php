@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Console\Commands\NormalizeStudentNames;
 use App\Models\AttendanceLog;
 use App\Models\Setting;
+use App\Models\SmsLog;
 use App\Models\Student;
 use App\Models\Visitor;
 use App\Models\VisitorLog;
@@ -641,6 +642,11 @@ class AttendanceController extends Controller
             '{time}' => Carbon::now('Asia/Manila')->format('h:i A'),
         ]);
 
-        app(SmsController::class)->sendDirect($recipient, $message, 'scan');
+        app(SmsController::class)->sendDirect(
+            $recipient,
+            $message,
+            'scan',
+            SmsLog::studentMeta($student, strtoupper($status) === 'OUT' ? 'gate_departure' : 'gate_arrival')
+        );
     }
 }

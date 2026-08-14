@@ -56,8 +56,39 @@
 .activity-logs-page .act-msg,
 .activity-logs-page .act-desc {
     color: #334155;
-    line-height: 1.4;
-    max-width: 28rem;
+    line-height: 1.45;
+    max-width: 36rem;
+    white-space: pre-wrap;
+}
+
+.activity-logs-page .sms-when {
+    color: #0f172a;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.activity-logs-page .sms-to__primary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem;
+    color: #0f172a;
+    font-weight: 600;
+}
+
+.activity-logs-page .sms-to__number {
+    font-variant-numeric: tabular-nums;
+}
+
+.activity-logs-page .sms-to__sep {
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.activity-logs-page .sms-to__student {
+    margin-top: 0.15rem;
+    color: #64748b;
+    font-size: 0.78rem;
 }
 
 .activity-logs-page .act-action-code {
@@ -70,10 +101,8 @@
     border-radius: 999px;
     background: rgba(18, 90, 130, 0.1);
     color: var(--brand-primary-darker, #125a82);
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
 
 .activity-logs-page .act-status--sent {

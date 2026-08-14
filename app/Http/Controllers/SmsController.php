@@ -158,6 +158,9 @@ class SmsController extends Controller
             $message = $student->fillSmsTemplate($request->message);
             $rawNumber = (string) ($student->{$column} ?? '');
             $numbers = $this->normalizePhilippineMobiles($rawNumber);
+            $meta = array_merge(SmsLog::studentMeta($student, 'blast'), [
+                'recipient_type' => $request->input('recipient'),
+            ]);
 
             if ($numbers === []) {
                 $this->recordSmsLog(
@@ -166,10 +169,7 @@ class SmsController extends Controller
                     status: 'skipped',
                     source: 'blast',
                     error: 'Invalid mobile number',
-                    meta: [
-                        'student_id' => $student->id,
-                        'recipient_type' => $request->input('recipient'),
-                    ],
+                    meta: $meta,
                 );
 
                 continue;
@@ -185,6 +185,7 @@ class SmsController extends Controller
                     'number' => $number,
                     'message' => $message,
                     'student_id' => $student->id,
+                    'meta' => $meta,
                 ];
             }
         }
@@ -206,6 +207,7 @@ class SmsController extends Controller
 
             $ok = $response->successful();
             $error = $ok ? null : ('HTTP '.$response->status().': '.substr($response->body(), 0, 200));
+            $httpStatus = $response->status();
 
             foreach ($entries as $entry) {
                 $this->recordSmsLog(
@@ -214,10 +216,7 @@ class SmsController extends Controller
                     status: $ok ? 'sent' : 'failed',
                     source: 'blast',
                     error: $error,
-                    meta: [
-                        'student_id' => $entry['student_id'],
-                        'recipient_type' => $request->input('recipient'),
-                    ],
+                    meta: array_merge($entry['meta'] ?? [], ['http_status' => $httpStatus]),
                 );
             }
 
@@ -255,10 +254,7 @@ class SmsController extends Controller
                     status: 'failed',
                     source: 'blast',
                     error: $e->getMessage(),
-                    meta: [
-                        'student_id' => $entry['student_id'],
-                        'recipient_type' => $request->input('recipient'),
-                    ],
+                    meta: $entry['meta'] ?? ['student_id' => $entry['student_id']],
                 );
             }
 
@@ -299,7 +295,7 @@ class SmsController extends Controller
         return $query;
     }
 
-    public function sendDirect(string $number, string $message, string $source = 'direct'): bool
+    public function sendDirect(string $number, string $message, string $source = 'direct', ?array $meta = null): bool
     {
         $numbers = $this->normalizePhilippineMobiles($number);
 
@@ -313,6 +309,7 @@ class SmsController extends Controller
                 status: 'skipped',
                 source: $source,
                 error: 'Invalid mobile number',
+                meta: $meta,
             );
 
             return false;
@@ -330,6 +327,7 @@ class SmsController extends Controller
                     status: 'skipped',
                     source: $source,
                     error: 'SMS_MODEM_URL is not configured',
+                    meta: $meta,
                 );
             }
 
@@ -351,6 +349,8 @@ class SmsController extends Controller
                 ->timeout(30)
                 ->post($url, $payload);
 
+            $httpMeta = array_merge($meta ?? [], ['http_status' => $response->status()]);
+
             if (! $response->successful()) {
                 Log::warning('SMS server non-success', [
                     'status' => $response->status(),
@@ -364,6 +364,7 @@ class SmsController extends Controller
                         status: 'failed',
                         source: $source,
                         error: 'HTTP '.$response->status(),
+                        meta: $httpMeta,
                     );
                 }
 
@@ -376,6 +377,7 @@ class SmsController extends Controller
                     message: $message,
                     status: 'sent',
                     source: $source,
+                    meta: $httpMeta,
                 );
             }
 
@@ -391,6 +393,7 @@ class SmsController extends Controller
                     status: 'failed',
                     source: $source,
                     error: $e->getMessage(),
+                    meta: $meta,
                 );
             }
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\SmsController;
 use App\Models\AttendanceLog;
 use App\Models\GateDevice;
 use App\Models\Setting;
+use App\Models\SmsLog;
 use App\Models\Student;
 use Carbon\Carbon;
 
@@ -223,6 +224,11 @@ class StudentScanService
             '{time}' => $scannedAt->copy()->timezone('Asia/Manila')->format('h:i A'),
         ]);
 
-        app(SmsController::class)->sendDirect($recipient, $message, 'scan');
+        app(SmsController::class)->sendDirect(
+            $recipient,
+            $message,
+            'scan',
+            SmsLog::studentMeta($student, strtoupper($status) === 'OUT' ? 'gate_departure' : 'gate_arrival')
+        );
     }
 }

@@ -29,7 +29,8 @@ class ActivityLogController extends Controller
                     $q->where(function ($inner) use ($search) {
                         $inner->where('recipient', 'like', "%{$search}%")
                             ->orWhere('message', 'like', "%{$search}%")
-                            ->orWhere('source', 'like', "%{$search}%");
+                            ->orWhere('source', 'like', "%{$search}%")
+                            ->orWhere('meta', 'like', "%{$search}%");
                     });
                 })
                 ->orderByDesc('created_at')
@@ -47,7 +48,8 @@ class ActivityLogController extends Controller
                     $q->where(function ($inner) use ($search) {
                         $inner->where('recipient', 'like', "%{$search}%")
                             ->orWhere('message', 'like', "%{$search}%")
-                            ->orWhere('source', 'like', "%{$search}%");
+                            ->orWhere('source', 'like', "%{$search}%")
+                            ->orWhere('meta', 'like', "%{$search}%");
                     });
                 });
 

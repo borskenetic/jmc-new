@@ -115,7 +115,7 @@
                         <path d="m20 20-3.5-3.5"/>
                     </svg>
                     <input type="search" id="actSearch" name="search" value="{{ request('search') }}"
-                           placeholder="{{ $tab === 'sms' ? 'Recipient, message, or source…' : 'User, action, or description…' }}"
+                           placeholder="{{ $tab === 'sms' ? 'Number, contact, student, or message…' : 'User, action, or description…' }}"
                            autocomplete="off">
                 </label>
                 <button type="submit" class="vl-btn vl-btn--primary">Search</button>
@@ -200,11 +200,10 @@
                     @if($tab === 'sms')
                         <tr>
                             <th>When</th>
-                            <th>Recipient</th>
+                            <th>To</th>
+                            <th>Type</th>
                             <th>Message</th>
-                            <th>Source</th>
                             <th>Status</th>
-                            <th>By</th>
                         </tr>
                     @else
                         <tr>
@@ -222,37 +221,43 @@
                             @php
                                 $when = $log->created_at?->timezone($tz);
                                 $status = strtolower((string) $log->status);
+                                $contactName = $log->contactName();
+                                $studentName = $log->studentName();
+                                $toName = $contactName !== '' ? $contactName : $studentName;
                             @endphp
                             <tr>
                                 <td data-label="When">
                                     @if($when)
-                                        <div class="vl-time">
-                                            <span class="vl-time__date">{{ $when->format('M j, Y') }}</span>
-                                            <span class="vl-time__clock">{{ $when->format('g:i A') }}</span>
-                                        </div>
+                                        <span class="sms-when">{{ $when->format('M j, Y, g:i:s A') }}</span>
                                     @else
                                         —
                                     @endif
                                 </td>
-                                <td data-label="Recipient"><code class="vl-code">{{ $log->recipient }}</code></td>
-                                <td data-label="Message">
-                                    <div class="act-msg" title="{{ $log->message }}">{{ \Illuminate\Support\Str::limit($log->message, 90) }}</div>
+                                <td data-label="To">
+                                    <div class="sms-to">
+                                        <div class="sms-to__primary">
+                                            <span class="sms-to__number">{{ $log->recipient }}</span>
+                                            @if($toName !== '')
+                                                <span class="sms-to__sep">|</span>
+                                                <span class="sms-to__name">{{ $toName }}</span>
+                                            @endif
+                                        </div>
+                                        @if($studentName !== '')
+                                            <div class="sms-to__student">Student: {{ $studentName }}</div>
+                                        @endif
+                                    </div>
                                 </td>
-                                <td data-label="Source">
-                                    <span class="act-source">{{ $log->source }}</span>
+                                <td data-label="Type">
+                                    <span class="act-source">{{ $log->typeLabel() }}</span>
+                                </td>
+                                <td data-label="Message">
+                                    <div class="act-msg">{{ $log->message }}</div>
+                                    @if($log->error)
+                                        <div class="act-error">{{ $log->error }}</div>
+                                    @endif
                                 </td>
                                 <td data-label="Status">
-                                    <span class="vl-status act-status--{{ $status }}">{{ strtoupper($status) }}</span>
-                                    @if($log->error)
-                                        <div class="act-error" title="{{ $log->error }}">{{ \Illuminate\Support\Str::limit($log->error, 48) }}</div>
-                                    @endif
-                                </td>
-                                <td data-label="By">
-                                    @if($log->user)
-                                        <span class="vl-visitor-name">{{ trim(($log->user->fname ?? '').' '.($log->user->lname ?? '')) ?: $log->user->email }}</span>
-                                    @else
-                                        <span class="vl-visitor-meta">System</span>
-                                    @endif
+                                    <span class="vl-status act-status--{{ $status }}">{{ $log->statusLabel() }}</span>
                                 </td>
                             </tr>
                         @else
@@ -282,7 +287,7 @@
                         @endif
                     @empty
                         <tr>
-                            <td colspan="{{ $tab === 'sms' ? 6 : 5 }}" class="vl-empty">
+                            <td colspan="{{ $tab === 'sms' ? 5 : 5 }}" class="vl-empty">
                                 No {{ $tab === 'sms' ? 'SMS' : 'activity' }} log entries match your filters.
                             </td>
                         </tr>
