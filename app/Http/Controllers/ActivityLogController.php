@@ -10,7 +10,7 @@ class ActivityLogController extends Controller
 {
     public function index(Request $request)
     {
-        $tab = $request->get('tab', 'activity');
+        $tab = $request->routeIs('sms.logs') ? 'sms' : $request->get('tab', 'activity');
         if (! in_array($tab, ['activity', 'sms'], true)) {
             $tab = 'activity';
         }

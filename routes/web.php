@@ -103,6 +103,7 @@ Route::middleware(['auth', 'can:isAdminOrStaff', LogAdminActivity::class])->grou
     Route::get('/admin/feedbacks', [FeedController::class, 'index'])->name('feedback.index');
 
     Route::get('/sms-blast', [SmsController::class, 'index'])->name('sms.page');
+    Route::get('/sms-logs', [ActivityLogController::class, 'index'])->name('sms.logs');
     Route::post('/sms/send', [SmsController::class, 'send'])->name('sms.send');
     Route::get('/sms/scan-message', [SmsController::class, 'scanMessage'])->name('sms.scanMessage');
     Route::post('/sms/scan-message', [SmsController::class, 'updateScanMessage'])->name('sms.scanMessage.update');

@@ -97,7 +97,7 @@
             </div>
 
             <button type="submit" class="btn btn-primary">Send SMS</button>
-            <a href="{{ route('activity_logs.index', ['tab' => 'sms']) }}" class="btn btn-outline-secondary ms-1">View SMS logs</a>
+            <a href="{{ route('sms.logs') }}" class="btn btn-outline-secondary ms-1">View SMS logs</a>
             <a href="{{ route('sms.scanMessage') }}" class="btn btn-outline-secondary ms-1">Gate terminal message</a>
         </div>
     </form>

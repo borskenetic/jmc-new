@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Activity Log')
+@section('title', $tab === 'sms' ? 'SMS Logs' : 'Activity Log')
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/layout/data-pages.css') }}">
@@ -25,7 +25,9 @@
             ->filter(fn ($v) => $v !== null && $v !== '')
             ->all();
 
-        return route('activity_logs.index', $params);
+        return request()->routeIs('sms.logs')
+            ? route('sms.logs', $params)
+            : route('activity_logs.index', $params);
     };
 
     $isDatePreset = fn (string $preset) => match ($preset) {
@@ -40,8 +42,8 @@
 <div class="data-page visitor-logs-page activity-logs-page">
     <header class="vl-header">
         <div class="vl-header__text">
-            <h1 class="vl-title">Activity Log</h1>
-            <p class="vl-subtitle">Admin actions and SMS delivery history for your library system.</p>
+            <h1 class="vl-title">{{ $tab === 'sms' ? 'SMS Logs' : 'Activity Log' }}</h1>
+            <p class="vl-subtitle">{{ $tab === 'sms' ? 'SMS delivery history for blasts and scan notifications.' : 'Admin actions and SMS delivery history for your library system.' }}</p>
         </div>
         <div class="vl-header__actions">
             @if($tab === 'sms')
@@ -51,16 +53,18 @@
         </div>
     </header>
 
+    @unless(request()->routeIs('sms.logs'))
     <div class="act-tabs" role="tablist" aria-label="Log type">
         <a href="{{ route('activity_logs.index', array_merge(request()->except(['page', 'status', 'source', 'action']), ['tab' => 'activity'])) }}"
            class="act-tab {{ $tab === 'activity' ? 'is-active' : '' }}"
            role="tab"
            aria-selected="{{ $tab === 'activity' ? 'true' : 'false' }}">Admin activity</a>
-        <a href="{{ route('activity_logs.index', array_merge(request()->except(['page', 'action']), ['tab' => 'sms'])) }}"
+        <a href="{{ route('sms.logs') }}"
            class="act-tab {{ $tab === 'sms' ? 'is-active' : '' }}"
            role="tab"
            aria-selected="{{ $tab === 'sms' ? 'true' : 'false' }}">SMS logs</a>
     </div>
+    @endunless
 
     <div class="vl-stats">
         @if($tab === 'sms')
