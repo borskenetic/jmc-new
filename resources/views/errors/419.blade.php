@@ -14,7 +14,7 @@
     <header class="session-expired-top">
         <div class="session-expired-brand">
             <p class="session-expired-brand__name">{{ config('app.name') }}</p>
-            <p class="session-expired-brand__meta">Powered by Pantas · staff access</p>
+            <p class="session-expired-brand__meta">Powered by Pantas</p>
         </div>
         <a href="{{ route('home') }}" class="session-expired-home">← Home</a>
     </header>
@@ -30,7 +30,5 @@
             <a href="{{ route('home') }}" class="auth-btn auth-btn--outline">Go to home</a>
         </div>
     </main>
-
-    <p class="session-expired-note">For security, the library console signs you out after a period of inactivity.</p>
 </body>
 </html>

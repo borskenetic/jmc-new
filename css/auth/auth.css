@@ -481,11 +481,12 @@
 .session-expired-seal img {
     position: absolute;
     top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    height: 100%;
+    left: 50%;
+    height: 128%;
     width: auto;
     max-width: none;
+    /* pantasLogo.png is ~4:1 (seal + wordmark); this centers the seal in the circle */
+    transform: translate(-15%, -50%);
 }
 
 .session-expired-card h1 {
@@ -512,14 +513,6 @@
 .session-expired-card .auth-btn--outline {
     margin-top: 0.7rem;
     border-color: rgba(var(--brand-primary-rgb, 75, 0, 130), 0.28);
-}
-
-.session-expired-note {
-    margin: 0;
-    padding: 0 1.5rem 1.5rem;
-    font-size: 0.8rem;
-    color: #94a3b8;
-    text-align: center;
 }
 
 @media (max-width: 640px) {
