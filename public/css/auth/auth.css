@@ -383,3 +383,159 @@
         box-shadow: 0 8px 30px rgba(15, 23, 42, 0.07);
     }
 }
+
+/* Session expired (419) */
+.session-expired-page {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    font-family: var(--brand-font-family, 'Poppins', system-ui, sans-serif);
+    background: #f7f4fb;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+}
+
+.session-expired-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.35rem 1.75rem 0;
+}
+
+.session-expired-brand {
+    min-width: 0;
+}
+
+.session-expired-brand__name {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--brand-school-name-color, var(--brand-primary, #4b0082));
+    line-height: 1.25;
+}
+
+.session-expired-brand__meta {
+    margin: 0.2rem 0 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.session-expired-home {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 1rem;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--brand-button-text, #fff);
+    background: var(--brand-button-bg, var(--brand-primary, #4b0082));
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(var(--brand-button-bg-rgb, 75, 0, 130), 0.28);
+}
+
+.session-expired-home:hover {
+    background: var(--brand-button-hover-bg, var(--brand-primary-dark, #3a0066));
+    color: var(--brand-button-hover-text, #fff);
+}
+
+.session-expired-main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.25rem 1.5rem;
+}
+
+.session-expired-card {
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 2.25rem 2rem 2rem;
+    text-align: center;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 12px 40px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(75, 0, 130, 0.06);
+}
+
+.session-expired-seal {
+    width: 112px;
+    height: 112px;
+    margin: 0 auto 1.35rem;
+    overflow: hidden;
+    border-radius: 50%;
+    position: relative;
+    border: 3px solid var(--brand-primary, #4b0082);
+    background: #fff;
+    box-shadow: 0 6px 20px rgba(var(--brand-primary-rgb, 75, 0, 130), 0.18);
+}
+
+.session-expired-seal img {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    height: 100%;
+    width: auto;
+    max-width: none;
+}
+
+.session-expired-card h1 {
+    margin: 0 0 0.65rem;
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.session-expired-card p {
+    margin: 0 0 1.5rem;
+    font-size: 0.95rem;
+    color: #64748b;
+    line-height: 1.55;
+}
+
+.session-expired-card .auth-btn {
+    margin-top: 0;
+    text-decoration: none;
+}
+
+.session-expired-card .auth-btn--outline {
+    margin-top: 0.7rem;
+    border-color: rgba(var(--brand-primary-rgb, 75, 0, 130), 0.28);
+}
+
+.session-expired-note {
+    margin: 0;
+    padding: 0 1.5rem 1.5rem;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .session-expired-top {
+        padding: 1rem 1rem 0;
+    }
+
+    .session-expired-brand__name {
+        font-size: 1rem;
+    }
+
+    .session-expired-card {
+        padding: 1.75rem 1.25rem 1.5rem;
+    }
+
+    .session-expired-card h1 {
+        font-size: 1.4rem;
+    }
+}
