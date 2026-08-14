@@ -105,6 +105,7 @@ Route::middleware(['auth', 'can:isAdminOrStaff', LogAdminActivity::class])->grou
     Route::get('/sms-blast', [SmsController::class, 'index'])->name('sms.page');
     Route::get('/sms-logs', [ActivityLogController::class, 'index'])->name('sms.logs');
     Route::post('/sms/send', [SmsController::class, 'send'])->name('sms.send');
+    Route::post('/sms/sim-load', [SmsController::class, 'updateSimLoad'])->name('sms.simLoad.update');
     Route::get('/sms/scan-message', [SmsController::class, 'scanMessage'])->name('sms.scanMessage');
     Route::post('/sms/scan-message', [SmsController::class, 'updateScanMessage'])->name('sms.scanMessage.update');
     Route::get('/sms/count', [SmsController::class, 'count'])->name('sms.count');

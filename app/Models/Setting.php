@@ -16,6 +16,16 @@ class Setting extends Model
 
     public const KEY_SCAN_SMS = 'scan_sms';
 
+    public const KEY_SCAN_SMS_ARRIVAL = 'scan_sms_arrival';
+
+    public const KEY_SCAN_SMS_DEPARTURE = 'scan_sms_departure';
+
+    public const KEY_SMS_SIM_LOAD = 'sms_sim_load';
+
+    public const DEFAULT_SCAN_SMS_ARRIVAL = 'Hello {contact}, your child {name} checked in at school at {time} ({status}).';
+
+    public const DEFAULT_SCAN_SMS_DEPARTURE = 'Hello {contact}, your child {name} scanned out at school at {time} ({status}). Have a safe trip home.';
+
     public const KEY_STUDENT_ATTENDANCE_SCHEDULE = 'student_attendance_schedule';
 
     public const DEFAULT_STUDENT_ATTENDANCE_SCHEDULE = [
@@ -205,6 +215,78 @@ class Setting extends Model
         static::updateOrCreate(
             ['key' => self::KEY_STUDENT_ATTENDANCE_SCHEDULE],
             ['value' => json_encode($schedule, JSON_UNESCAPED_UNICODE)]
+        );
+    }
+
+    public static function scanSmsArrivalTemplate(): string
+    {
+        $value = static::where('key', self::KEY_SCAN_SMS_ARRIVAL)->value('value');
+        if (is_string($value) && trim($value) !== '') {
+            return $value;
+        }
+
+        $legacy = static::where('key', self::KEY_SCAN_SMS)->value('value');
+        if (is_string($legacy) && trim($legacy) !== '') {
+            return $legacy;
+        }
+
+        return self::DEFAULT_SCAN_SMS_ARRIVAL;
+    }
+
+    public static function scanSmsDepartureTemplate(): string
+    {
+        $value = static::where('key', self::KEY_SCAN_SMS_DEPARTURE)->value('value');
+
+        return (is_string($value) && trim($value) !== '')
+            ? $value
+            : self::DEFAULT_SCAN_SMS_DEPARTURE;
+    }
+
+    public static function scanSmsTemplateForStatus(string $status): string
+    {
+        return strtoupper($status) === 'OUT'
+            ? self::scanSmsDepartureTemplate()
+            : self::scanSmsArrivalTemplate();
+    }
+
+    /**
+     * @return array{loaded_at: string, validity_days: int, expires_at: string, days_left: int, ok: bool}|null
+     */
+    public static function smsSimLoad(): ?array
+    {
+        $raw = static::where('key', self::KEY_SMS_SIM_LOAD)->value('value');
+        if ($raw === null) {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (! is_array($decoded) || empty($decoded['loaded_at'])) {
+            return null;
+        }
+
+        $loadedAt = (string) $decoded['loaded_at'];
+        $validityDays = max(1, (int) ($decoded['validity_days'] ?? 15));
+        $expires = \Carbon\Carbon::parse($loadedAt, config('app.timezone'))->startOfDay()->addDays($validityDays);
+        $today = now(config('app.timezone'))->startOfDay();
+        $daysLeft = (int) round(($expires->getTimestamp() - $today->getTimestamp()) / 86400);
+
+        return [
+            'loaded_at' => $loadedAt,
+            'validity_days' => $validityDays,
+            'expires_at' => $expires->toDateString(),
+            'days_left' => $daysLeft,
+            'ok' => $daysLeft >= 0,
+        ];
+    }
+
+    public static function setSmsSimLoad(string $loadedAt, int $validityDays): void
+    {
+        static::updateOrCreate(
+            ['key' => self::KEY_SMS_SIM_LOAD],
+            ['value' => json_encode([
+                'loaded_at' => $loadedAt,
+                'validity_days' => max(1, $validityDays),
+            ], JSON_UNESCAPED_UNICODE)]
         );
     }
 }

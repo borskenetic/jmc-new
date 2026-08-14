@@ -75,6 +75,28 @@ class Student extends Model
         return is_array($this->face_descriptor) && count($this->face_descriptor) === (int) config('face.descriptor_length', 128);
     }
 
+    public function smsFullName(): string
+    {
+        return trim(($this->firstname ?? '').' '.($this->lastname ?? ''));
+    }
+
+    public function smsContactName(): string
+    {
+        return trim((string) ($this->emergency_person ?? ''));
+    }
+
+    public function fillSmsTemplate(string $template, array $extra = []): string
+    {
+        $contact = $this->smsContactName();
+        $replacements = array_merge([
+            '{name}' => $this->smsFullName(),
+            '{contact}' => $contact,
+            '{emergency_name}' => $contact,
+        ], $extra);
+
+        return str_replace(array_keys($replacements), array_values($replacements), $template);
+    }
+
     protected function profilePicture(): Attribute
     {
         return Attribute::make(

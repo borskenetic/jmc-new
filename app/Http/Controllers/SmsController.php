@@ -63,30 +63,54 @@ class SmsController extends Controller
             'yearOptions' => $yearOptions,
             'sections' => $sections,
             'sectionsByGrade' => $sectionsByGrade,
+            'simLoad' => Setting::smsSimLoad(),
         ]);
+    }
+
+    public function updateSimLoad(Request $request)
+    {
+        $validated = $request->validate([
+            'loaded_at' => 'required|date',
+            'validity_days' => 'required|integer|min:1|max:365',
+        ]);
+
+        Setting::setSmsSimLoad(
+            \Carbon\Carbon::parse($validated['loaded_at'])->toDateString(),
+            (int) $validated['validity_days']
+        );
+
+        return back()->with('success', 'SIM load updated.');
     }
 
     public function scanMessage()
     {
-        $setting = Setting::where('key', 'scan_sms')->first();
-
         return view('sms.scan_message', [
-            'message' => $setting ? $setting->value : self::DEFAULT_SCAN_SMS,
+            'arrival' => Setting::scanSmsArrivalTemplate(),
+            'departure' => Setting::scanSmsDepartureTemplate(),
         ]);
     }
 
     public function updateScanMessage(Request $request)
     {
         $request->validate([
-            'message' => 'required',
+            'arrival' => 'required|string',
+            'departure' => 'required|string',
         ]);
 
         Setting::updateOrCreate(
-            ['key' => 'scan_sms'],
-            ['value' => $request->message]
+            ['key' => Setting::KEY_SCAN_SMS_ARRIVAL],
+            ['value' => $request->arrival]
+        );
+        Setting::updateOrCreate(
+            ['key' => Setting::KEY_SCAN_SMS_DEPARTURE],
+            ['value' => $request->departure]
+        );
+        Setting::updateOrCreate(
+            ['key' => Setting::KEY_SCAN_SMS],
+            ['value' => $request->arrival]
         );
 
-        return back()->with('success', 'Scan SMS updated');
+        return back()->with('success', 'Gate SMS templates updated.');
     }
 
     public function count(Request $request)
@@ -131,8 +155,7 @@ class SmsController extends Controller
         $entries = [];
 
         foreach ($students as $student) {
-            $name = trim(($student->firstname ?? '').' '.($student->lastname ?? ''));
-            $message = str_replace('{name}', $name, $request->message);
+            $message = $student->fillSmsTemplate($request->message);
             $rawNumber = (string) ($student->{$column} ?? '');
             $numbers = $this->normalizePhilippineMobiles($rawNumber);
 

@@ -216,18 +216,12 @@ class StudentScanService
             return;
         }
 
-        $template = Setting::where('key', Setting::KEY_SCAN_SMS)->value('value')
-            ?? SmsController::DEFAULT_SCAN_SMS;
+        $template = Setting::scanSmsTemplateForStatus($status);
 
-        $message = str_replace(
-            ['{name}', '{status}', '{time}'],
-            [
-                trim($student->firstname.' '.$student->lastname),
-                $status,
-                $scannedAt->copy()->timezone('Asia/Manila')->format('h:i A'),
-            ],
-            $template
-        );
+        $message = $student->fillSmsTemplate($template, [
+            '{status}' => $status,
+            '{time}' => $scannedAt->copy()->timezone('Asia/Manila')->format('h:i A'),
+        ]);
 
         app(SmsController::class)->sendDirect($recipient, $message, 'scan');
     }

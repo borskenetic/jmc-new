@@ -28,6 +28,48 @@
         </div>
     @endif
 
+    @php $simLoad = $simLoad ?? null; @endphp
+    <div class="alert {{ ($simLoad && $simLoad['ok']) ? 'alert-success' : 'alert-warning' }} d-flex flex-wrap align-items-start justify-content-between gap-3">
+        <div>
+            <div class="fw-bold">SIM load</div>
+            @if($simLoad)
+                <div>
+                    @if($simLoad['ok'])
+                        SIM load OK — {{ $simLoad['days_left'] }} day(s) left (until {{ $simLoad['expires_at'] }}).
+                    @else
+                        SIM load expired {{ abs($simLoad['days_left']) }} day(s) ago (expired {{ $simLoad['expires_at'] }}).
+                    @endif
+                </div>
+                <small class="d-block mt-1">
+                    Loaded {{ $simLoad['loaded_at'] }} · {{ $simLoad['validity_days'] }} day(s) validity · expires {{ $simLoad['expires_at'] }}
+                </small>
+            @else
+                <div>No SIM load recorded yet. Update the load date after topping up the modem SIM.</div>
+            @endif
+        </div>
+        <button class="btn btn-sm btn-outline-success" type="button" data-bs-toggle="collapse" data-bs-target="#simLoadForm" aria-expanded="false">
+            Update load
+        </button>
+        <form method="POST" action="{{ route('sms.simLoad.update') }}" class="collapse w-100" id="simLoadForm">
+            @csrf
+            <div class="row g-2 align-items-end">
+                <div class="col-sm-4">
+                    <label class="form-label mb-1" for="loaded_at">Loaded date</label>
+                    <input type="date" class="form-control" name="loaded_at" id="loaded_at"
+                           value="{{ old('loaded_at', $simLoad['loaded_at'] ?? now()->toDateString()) }}" required>
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label mb-1" for="validity_days">Validity (days)</label>
+                    <input type="number" min="1" max="365" class="form-control" name="validity_days" id="validity_days"
+                           value="{{ old('validity_days', $simLoad['validity_days'] ?? 15) }}" required>
+                </div>
+                <div class="col-sm-4">
+                    <button type="submit" class="btn btn-success">Save load</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
     <form method="POST" action="{{ route('sms.send') }}" class="card border-0 shadow-sm">
         @csrf
         <div class="card-body">
@@ -87,18 +129,18 @@
                     name="message"
                     class="form-control"
                     rows="5"
-                    placeholder="Example: Hello {name}, please visit the campus office today."
+                    placeholder="Example: Hello {contact}, this is about {name}. Please visit the library today."
                     required
                 >{{ old('message') }}</textarea>
                 <small class="text-muted">
                     Available variables:<br>
-                    <b>{name}</b> = Student full name
+                    <b>{name}</b> = Student full name<br>
+                    <b>{contact}</b> = Emergency contact name
                 </small>
             </div>
 
             <button type="submit" class="btn btn-primary">Send SMS</button>
-            <a href="{{ route('sms.logs') }}" class="btn btn-outline-secondary ms-1">View SMS logs</a>
-            <a href="{{ route('sms.scanMessage') }}" class="btn btn-outline-secondary ms-1">Gate terminal message</a>
+            <a href="{{ route('sms.scanMessage') }}" class="btn btn-outline-secondary ms-1">Gate SMS settings</a>
         </div>
     </form>
 </div>
