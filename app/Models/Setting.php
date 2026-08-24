@@ -32,6 +32,18 @@ class Setting extends Model
         'in_time' => '07:30',
         'out_time' => '14:00',
         'grace_minutes' => 10,
+        'groups' => [
+            'k10' => [
+                'in_time' => '07:30',
+                'out_time' => '14:00',
+                'grace_minutes' => 10,
+            ],
+            'shs' => [
+                'in_time' => '14:30',
+                'out_time' => '14:00',
+                'grace_minutes' => 10,
+            ],
+        ],
     ];
 
     public const DEFAULT_GATE_TERMINALS = [
@@ -182,19 +194,52 @@ class Setting extends Model
      */
     public static function studentAttendanceSchedule(): array
     {
+        $k10Defaults = self::DEFAULT_STUDENT_ATTENDANCE_SCHEDULE['groups']['k10'];
+        $shsDefaults = self::DEFAULT_STUDENT_ATTENDANCE_SCHEDULE['groups']['shs'];
+
         $defaults = [
             'in_time' => (string) config(
-                'attendance.schedule.in_time',
-                self::DEFAULT_STUDENT_ATTENDANCE_SCHEDULE['in_time']
+                'attendance.schedule.groups.k10.in_time',
+                config('attendance.schedule.in_time', $k10Defaults['in_time'])
             ),
             'out_time' => (string) config(
-                'attendance.schedule.out_time',
-                self::DEFAULT_STUDENT_ATTENDANCE_SCHEDULE['out_time']
+                'attendance.schedule.groups.k10.out_time',
+                config('attendance.schedule.out_time', $k10Defaults['out_time'])
             ),
             'grace_minutes' => (int) config(
-                'attendance.schedule.grace_minutes',
-                self::DEFAULT_STUDENT_ATTENDANCE_SCHEDULE['grace_minutes']
+                'attendance.schedule.groups.k10.grace_minutes',
+                config('attendance.schedule.grace_minutes', $k10Defaults['grace_minutes'])
             ),
+            'groups' => [
+                'k10' => [
+                    'in_time' => (string) config(
+                        'attendance.schedule.groups.k10.in_time',
+                        config('attendance.schedule.in_time', $k10Defaults['in_time'])
+                    ),
+                    'out_time' => (string) config(
+                        'attendance.schedule.groups.k10.out_time',
+                        config('attendance.schedule.out_time', $k10Defaults['out_time'])
+                    ),
+                    'grace_minutes' => (int) config(
+                        'attendance.schedule.groups.k10.grace_minutes',
+                        config('attendance.schedule.grace_minutes', $k10Defaults['grace_minutes'])
+                    ),
+                ],
+                'shs' => [
+                    'in_time' => (string) config(
+                        'attendance.schedule.groups.shs.in_time',
+                        $shsDefaults['in_time']
+                    ),
+                    'out_time' => (string) config(
+                        'attendance.schedule.groups.shs.out_time',
+                        config('attendance.schedule.out_time', $shsDefaults['out_time'])
+                    ),
+                    'grace_minutes' => (int) config(
+                        'attendance.schedule.groups.shs.grace_minutes',
+                        config('attendance.schedule.grace_minutes', $shsDefaults['grace_minutes'])
+                    ),
+                ],
+            ],
         ];
 
         $raw = static::where('key', self::KEY_STUDENT_ATTENDANCE_SCHEDULE)->value('value');
@@ -203,8 +248,36 @@ class Setting extends Model
         }
 
         $decoded = json_decode($raw, true);
+        if (! is_array($decoded)) {
+            return $defaults;
+        }
 
-        return is_array($decoded) ? array_merge($defaults, $decoded) : $defaults;
+        $merged = array_merge($defaults, $decoded);
+        $mergedGroups = is_array($decoded['groups'] ?? null) ? $decoded['groups'] : [];
+
+        // Migrate legacy flat schedule into k10 when groups.k10 was never saved.
+        $k10FromFlat = [];
+        if (! isset($mergedGroups['k10']) || ! is_array($mergedGroups['k10'])) {
+            foreach (['in_time', 'out_time', 'grace_minutes'] as $key) {
+                if (array_key_exists($key, $decoded)) {
+                    $k10FromFlat[$key] = $decoded[$key];
+                }
+            }
+        }
+
+        $merged['groups'] = [
+            'k10' => array_merge(
+                $defaults['groups']['k10'],
+                $k10FromFlat,
+                is_array($mergedGroups['k10'] ?? null) ? $mergedGroups['k10'] : []
+            ),
+            'shs' => array_merge(
+                $defaults['groups']['shs'],
+                is_array($mergedGroups['shs'] ?? null) ? $mergedGroups['shs'] : []
+            ),
+        ];
+
+        return $merged;
     }
 
     /**

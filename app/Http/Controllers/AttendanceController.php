@@ -131,8 +131,10 @@ class AttendanceController extends Controller
     public function scheduleSettings(StudentAttendanceSchedule $schedule)
     {
         return view('attendance.schedule_settings', [
-            'permanent' => $schedule->permanent(),
-            'temporary' => $schedule->temporary(),
+            'permanentK10' => $schedule->permanent(StudentAttendanceSchedule::GROUP_K10),
+            'permanentShs' => $schedule->permanent(StudentAttendanceSchedule::GROUP_SHS),
+            'temporaryK10' => $schedule->temporary(StudentAttendanceSchedule::GROUP_K10),
+            'temporaryShs' => $schedule->temporary(StudentAttendanceSchedule::GROUP_SHS),
             'outAllowedFromLabel' => $schedule->outAllowedFromLabel(),
         ]);
     }
@@ -140,12 +142,17 @@ class AttendanceController extends Controller
     public function updateScheduleSettings(Request $request, StudentAttendanceSchedule $schedule)
     {
         $validated = $request->validate([
-            'in_time' => ['required', 'date_format:H:i'],
-            'out_time' => ['required', 'date_format:H:i'],
-            'grace_minutes' => ['required', 'integer', 'min:0', 'max:180'],
+            'groups.k10.in_time' => ['required', 'date_format:H:i'],
+            'groups.k10.out_time' => ['required', 'date_format:H:i'],
+            'groups.k10.grace_minutes' => ['required', 'integer', 'min:0', 'max:180'],
+            'groups.shs.in_time' => ['required', 'date_format:H:i'],
+            'groups.shs.out_time' => ['required', 'date_format:H:i'],
+            'groups.shs.grace_minutes' => ['required', 'integer', 'min:0', 'max:180'],
             'temporary.enabled' => ['nullable', 'in:0,1'],
-            'temporary.in_time' => ['nullable', 'date_format:H:i'],
-            'temporary.out_time' => ['nullable', 'date_format:H:i'],
+            'temporary.k10.in_time' => ['nullable', 'date_format:H:i'],
+            'temporary.k10.out_time' => ['nullable', 'date_format:H:i'],
+            'temporary.shs.in_time' => ['nullable', 'date_format:H:i'],
+            'temporary.shs.out_time' => ['nullable', 'date_format:H:i'],
             'temporary.starts_on' => ['nullable', 'date'],
             'temporary.ends_on' => ['nullable', 'date', 'after_or_equal:temporary.starts_on'],
         ]);
@@ -153,23 +160,40 @@ class AttendanceController extends Controller
         $tempEnabled = (string) $request->input('temporary.enabled') === '1';
         if ($tempEnabled) {
             $request->validate([
-                'temporary.in_time' => ['required', 'date_format:H:i'],
-                'temporary.out_time' => ['required', 'date_format:H:i'],
+                'temporary.k10.in_time' => ['required', 'date_format:H:i'],
+                'temporary.k10.out_time' => ['required', 'date_format:H:i'],
+                'temporary.shs.in_time' => ['required', 'date_format:H:i'],
+                'temporary.shs.out_time' => ['required', 'date_format:H:i'],
                 'temporary.starts_on' => ['required', 'date'],
                 'temporary.ends_on' => ['required', 'date', 'after_or_equal:temporary.starts_on'],
             ]);
         }
 
         $schedule->update([
-            'in_time' => $validated['in_time'],
-            'out_time' => $validated['out_time'],
-            'grace_minutes' => $validated['grace_minutes'],
+            'groups' => [
+                'k10' => [
+                    'in_time' => $validated['groups']['k10']['in_time'],
+                    'out_time' => $validated['groups']['k10']['out_time'],
+                    'grace_minutes' => $validated['groups']['k10']['grace_minutes'],
+                ],
+                'shs' => [
+                    'in_time' => $validated['groups']['shs']['in_time'],
+                    'out_time' => $validated['groups']['shs']['out_time'],
+                    'grace_minutes' => $validated['groups']['shs']['grace_minutes'],
+                ],
+            ],
             'temporary' => [
                 'enabled' => $tempEnabled,
-                'in_time' => $request->input('temporary.in_time'),
-                'out_time' => $request->input('temporary.out_time'),
                 'starts_on' => $request->input('temporary.starts_on'),
                 'ends_on' => $request->input('temporary.ends_on'),
+                'k10' => [
+                    'in_time' => $request->input('temporary.k10.in_time'),
+                    'out_time' => $request->input('temporary.k10.out_time'),
+                ],
+                'shs' => [
+                    'in_time' => $request->input('temporary.shs.in_time'),
+                    'out_time' => $request->input('temporary.shs.out_time'),
+                ],
             ],
         ]);
 

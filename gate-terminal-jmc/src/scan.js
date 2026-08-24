@@ -156,6 +156,24 @@ function studentPayload(student) {
   };
 }
 
+function scheduleForStudent(settings, student) {
+  const root = settings?.student_schedule || {};
+  const groups = root.groups || null;
+  if (!groups) {
+    return root;
+  }
+
+  const level = String(student?.educational_level || '').toLowerCase();
+  const year = String(student?.year || '');
+  const isShs =
+    level === 'high_school_senior' ||
+    year === 'Grade 11' ||
+    year === 'Grade 12';
+
+  const group = isShs ? groups.shs : groups.k10;
+  return group && typeof group === 'object' ? { ...root, ...group } : root;
+}
+
 function outAllowedFrom(settings) {
   return String(settings?.student_schedule?.out_allowed_from || '11:00');
 }
@@ -256,9 +274,15 @@ function previewScan(rawToken) {
   };
 }
 
-function isLateAt(scannedAtIso, settings) {
-  const schedule = settings?.student_schedule || {};
-  const inTime = String(schedule.in_time || '07:30');
+function isLateAt(scannedAtIso, settings, student = null) {
+  const schedule = scheduleForStudent(settings, student);
+  const level = String(student?.educational_level || '').toLowerCase();
+  const year = String(student?.year || '');
+  const isShs =
+    level === 'high_school_senior' ||
+    year === 'Grade 11' ||
+    year === 'Grade 12';
+  const inTime = String(schedule.in_time || (isShs ? '14:30' : '07:30'));
   const grace = Math.max(0, Number(schedule.grace_minutes ?? 10) || 0);
   const [hh, mm] = inTime.split(':').map((n) => Number(n));
   if (!Number.isFinite(hh) || !Number.isFinite(mm)) {
@@ -301,7 +325,7 @@ function recordScan(rawToken, section = null) {
   const status = preview.next_status;
   const scannedAt = manilaLocalIso();
   const clientUuid = uuidv4();
-  const isLate = status === 'IN' && isLateAt(scannedAt, settings);
+  const isLate = status === 'IN' && isLateAt(scannedAt, settings, student);
 
   insertLocalLog({
     client_uuid: clientUuid,

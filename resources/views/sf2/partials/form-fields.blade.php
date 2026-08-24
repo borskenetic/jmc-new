@@ -75,11 +75,9 @@
             <p class="small text-muted mb-0">
                 School days are weekdays (Mon–Fri) in the selected month.
                 @unless($report)
-                    @php
-                        $schedule = app(\App\Services\StudentAttendanceSchedule::class);
-                    @endphp
                     Use <strong>Load from attendance logs</strong> to fill the roster and marks from school-wide IN scans
-                    (present = scanned IN; absent = no IN; tardy = first IN after {{ $schedule->inTimeLabel() }} + {{ $schedule->graceMinutes() }} min).
+                    (present = scanned IN; absent = no IN; tardy = first IN after that learner’s schedule IN + grace —
+                    Kinder–Grade 10 and SHS use separate schedules).
                     You can still adjust any day on the calendar before saving.
                 @else
                     For each learner, use the <strong>calendar</strong> to click absent or tardy days; unmarked weekdays count as present.
