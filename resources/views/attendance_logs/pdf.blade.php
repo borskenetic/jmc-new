@@ -32,7 +32,7 @@
                     <td>{{ $log->student->course ?? 'Unknown' }}</td>
                     <td>{{ $log->section ?? '—' }}</td>
                     <td>{{ $log->gate ?? '—' }}</td>
-                    <td>{{ ($log->status === 'IN' && $log->isLateArrival()) ? 'LATE' : strtoupper($log->status) }}</td>
+                    <td>{{ ($log->status === 'IN' && $log->is_late) ? 'LATE' : strtoupper($log->status) }}</td>
                     <td>
                         {{ $log->scanned_at?->format('Y-m-d h:i A') ?? '—' }}
                     </td>

@@ -24,7 +24,7 @@ class AttendanceLogsExport implements FromCollection, WithHeadings
                 'course'      => $log->student->course ?? 'Unknown',
                 'section'     => $log->section ?? '—',
                 'gate'        => $log->gate ?? '—',
-                'status'      => ($log->status === 'IN' && $log->isLateArrival()) ? 'LATE' : strtoupper($log->status),
+                'status'      => ($log->status === 'IN' && $log->is_late) ? 'LATE' : strtoupper($log->status),
                 'scanned_at'  => $log->scanned_at?->format('Y-m-d h:i A') ?? '—',
             ];
         });

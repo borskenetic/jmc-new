@@ -7,6 +7,7 @@ use App\Models\AttendanceLog;
 use App\Models\GradeSection;
 use App\Models\Setting;
 use App\Models\Student;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema;
 use App\Services\PatronAttendanceReportService;
 use App\Support\PatronOptions;
@@ -18,6 +19,8 @@ class AttendanceLogController extends Controller
 {
     public function index(Request $request)
     {
+        $this->applyDefaultDateRange($request);
+
         $baseQuery = $this->filteredLogs($request);
 
         $logs = (clone $baseQuery)
@@ -47,17 +50,8 @@ class AttendanceLogController extends Controller
             ->sort()
             ->values();
 
-        $gateOptions = collect(Setting::gateTerminals());
-        if (Schema::hasColumn('attendance_logs', 'gate')) {
-            $gateOptions = $gateOptions->merge(
-                AttendanceLog::query()
-                    ->whereNotNull('gate')
-                    ->where('gate', '!=', '')
-                    ->distinct()
-                    ->orderBy('gate')
-                    ->pluck('gate')
-            )->unique()->sort()->values();
-        }
+        // Prefer configured terminals only — scanning all log gates is expensive on large tables.
+        $gateOptions = collect(Setting::gateTerminals())->filter()->unique()->sort()->values();
 
         return view('attendance_logs.index', compact(
             'logs',
@@ -68,32 +62,87 @@ class AttendanceLogController extends Controller
         ));
     }
 
+    /** Default the list to Today unless All time (period=all) is requested without dates. */
+    private function applyDefaultDateRange(Request $request): void
+    {
+        if ($this->wantsAllTime($request)) {
+            return;
+        }
+
+        if (! $request->filled('from') && ! $request->filled('to')) {
+            $today = now(config('app.timezone', 'Asia/Manila'))->toDateString();
+            $request->merge([
+                'from' => $today,
+                'to' => $today,
+            ]);
+        }
+    }
+
+    private function wantsAllTime(Request $request): bool
+    {
+        return $request->query('period') === 'all'
+            && ! $request->filled('from')
+            && ! $request->filled('to');
+    }
+
     /** @return array{total: int, in: int, late: int, out: int, today: int} */
     private function summaryForQuery($query): array
     {
         $tz = config('app.timezone', 'Asia/Manila');
-        $today = now($tz)->toDateString();
+        $todayStart = now($tz)->startOfDay()->toDateTimeString();
+        $todayEnd = now($tz)->endOfDay()->toDateTimeString();
+
+        $row = (clone $query)
+            ->toBase()
+            ->reorder()
+            ->selectRaw(
+                "COUNT(*) as total,
+                 SUM(CASE WHEN UPPER(status) = 'IN' THEN 1 ELSE 0 END) as cin,
+                 SUM(CASE WHEN UPPER(status) = 'IN' AND is_late = 1 THEN 1 ELSE 0 END) as late,
+                 SUM(CASE WHEN UPPER(status) = 'OUT' THEN 1 ELSE 0 END) as cout,
+                 SUM(CASE WHEN scanned_at >= ? AND scanned_at <= ? THEN 1 ELSE 0 END) as today",
+                [$todayStart, $todayEnd]
+            )
+            ->first();
 
         return [
-            'total' => (clone $query)->count(),
-            'in' => (clone $query)->where('status', 'IN')->count(),
-            'late' => (clone $query)->where('status', 'IN')->where('is_late', true)->count(),
-            'out' => (clone $query)->where('status', 'OUT')->count(),
-            'today' => (clone $query)->whereDate('scanned_at', $today)->count(),
+            'total' => (int) ($row->total ?? 0),
+            'in' => (int) ($row->cin ?? 0),
+            'late' => (int) ($row->late ?? 0),
+            'out' => (int) ($row->cout ?? 0),
+            'today' => (int) ($row->today ?? 0),
         ];
     }
 
     private function filteredLogs(Request $request)
     {
+        $this->applyDefaultDateRange($request);
+
         $status = strtoupper((string) $request->status);
+        $allTime = $this->wantsAllTime($request);
+        $tz = config('app.timezone', 'Asia/Manila');
 
-        return AttendanceLog::with('student')
+        $from = $allTime ? null : $request->input('from');
+        $to = $allTime ? null : $request->input('to');
 
-            ->when($request->from,
-                fn($q) => $q->whereDate('scanned_at', '>=', $request->from))
+        return AttendanceLog::query()
+            ->with(['student:id,firstname,lastname,student_id,year,section,course'])
 
-            ->when($request->to,
-                fn($q) => $q->whereDate('scanned_at', '<=', $request->to))
+            ->when($from, function ($q) use ($from, $tz) {
+                $q->where(
+                    'scanned_at',
+                    '>=',
+                    Carbon::parse($from, $tz)->startOfDay()
+                );
+            })
+
+            ->when($to, function ($q) use ($to, $tz) {
+                $q->where(
+                    'scanned_at',
+                    '<=',
+                    Carbon::parse($to, $tz)->endOfDay()
+                );
+            })
 
             ->when($request->year ?: $request->year_level,
                 fn ($q) => $q->whereHas('student',
@@ -135,7 +184,7 @@ class AttendanceLogController extends Controller
                 });
             })
 
-            ->orderBy('scanned_at', 'desc');
+            ->orderByDesc('scanned_at');
     }
 
     public function create()
@@ -153,7 +202,7 @@ class AttendanceLogController extends Controller
         ]);
 
         $status = strtoupper((string) $request->input('status'));
-        $scannedAt = \Carbon\Carbon::parse($request->input('scanned_at'));
+        $scannedAt = Carbon::parse($request->input('scanned_at'));
         $isLate = $status === 'IN' && app(\App\Services\StudentAttendanceSchedule::class)->isLate(
             $scannedAt,
             Student::find($request->input('student_id'))

@@ -10,12 +10,29 @@
 @section('content')
 @php
     $query = request()->query();
-    $hasFilters = collect($query)->except('page')->filter()->isNotEmpty();
     $tz = config('app.timezone', 'Asia/Manila');
     $today = now($tz)->toDateString();
     $weekStart = now($tz)->startOfWeek()->toDateString();
     $monthStart = now($tz)->startOfMonth()->toDateString();
     $currentStatus = strtoupper((string) request('status'));
+    $isAllTime = ($query['period'] ?? null) === 'all';
+    $fromDate = $isAllTime ? null : request('from');
+    $toDate = $isAllTime ? null : request('to');
+    // Default view is Today (controller merges from/to); treat that as no extra filters.
+    $isDefaultToday = ! $isAllTime && $fromDate === $today && $toDate === $today;
+    $hasFilters = collect($query)
+        ->except(['page', 'period'])
+        ->filter(function ($v, $key) use ($isDefaultToday, $today) {
+            if ($v === null || $v === '') {
+                return false;
+            }
+            if ($isDefaultToday && in_array($key, ['from', 'to'], true) && $v === $today) {
+                return false;
+            }
+
+            return true;
+        })
+        ->isNotEmpty() || $isAllTime;
 
     $filterUrl = function (array $merge = [], array $except = []) use ($query) {
         $params = collect($query)->except(array_merge(['page'], $except))->merge($merge)->filter(fn ($v) => $v !== null && $v !== '')->all();
@@ -24,10 +41,10 @@
     };
 
     $isDatePreset = fn (string $preset) => match ($preset) {
-        'today' => request('from') === $today && request('to') === $today,
-        'week' => request('from') === $weekStart && request('to') === $today,
-        'month' => request('from') === $monthStart && request('to') === $today,
-        'all' => ! request('from') && ! request('to'),
+        'today' => ! $isAllTime && $fromDate === $today && $toDate === $today,
+        'week' => ! $isAllTime && $fromDate === $weekStart && $toDate === $today,
+        'month' => ! $isAllTime && $fromDate === $monthStart && $toDate === $today,
+        'all' => $isAllTime,
         default => false,
     };
 @endphp
@@ -94,13 +111,13 @@
                 <div class="al-control-group">
                     <span class="al-control-group__label">Period</span>
                     <div class="al-pills" role="group" aria-label="Date period">
-                        <a href="{{ $filterUrl(['from' => $today, 'to' => $today]) }}"
+                        <a href="{{ $filterUrl(['from' => $today, 'to' => $today], ['period']) }}"
                            class="al-pill {{ $isDatePreset('today') ? 'is-active' : '' }}">Today</a>
-                        <a href="{{ $filterUrl(['from' => $weekStart, 'to' => $today]) }}"
+                        <a href="{{ $filterUrl(['from' => $weekStart, 'to' => $today], ['period']) }}"
                            class="al-pill {{ $isDatePreset('week') ? 'is-active' : '' }}">This week</a>
-                        <a href="{{ $filterUrl(['from' => $monthStart, 'to' => $today]) }}"
+                        <a href="{{ $filterUrl(['from' => $monthStart, 'to' => $today], ['period']) }}"
                            class="al-pill {{ $isDatePreset('month') ? 'is-active' : '' }}">This month</a>
-                        <a href="{{ $filterUrl([], ['from', 'to']) }}"
+                        <a href="{{ $filterUrl(['period' => 'all'], ['from', 'to']) }}"
                            class="al-pill {{ $isDatePreset('all') ? 'is-active' : '' }}">All time</a>
                     </div>
                 </div>
@@ -120,16 +137,16 @@
                 </div>
             </div>
 
-            <details class="al-more-filters" {{ request()->hasAny(['from', 'to', 'year', 'homeroom_section', 'gate']) ? 'open' : '' }}>
+            <details class="al-more-filters" {{ collect($query)->only(['year', 'homeroom_section', 'gate'])->filter()->isNotEmpty() || (! $isDefaultToday && ! $isAllTime && ($fromDate || $toDate)) ? 'open' : '' }}>
                 <summary>More filters</summary>
                 <div class="al-more-filters__grid">
                     <div class="al-field">
                         <label for="alFrom">From</label>
-                        <input type="date" id="alFrom" name="from" value="{{ request('from') }}">
+                        <input type="date" id="alFrom" name="from" value="{{ $isAllTime ? '' : $fromDate }}">
                     </div>
                     <div class="al-field">
                         <label for="alTo">To</label>
-                        <input type="date" id="alTo" name="to" value="{{ request('to') }}">
+                        <input type="date" id="alTo" name="to" value="{{ $isAllTime ? '' : $toDate }}">
                     </div>
                     <div class="al-field">
                         <label for="alYear">Grade</label>
@@ -170,6 +187,9 @@
             @if($currentStatus !== '')
                 <input type="hidden" name="status" value="{{ $currentStatus }}">
             @endif
+            @if($isAllTime)
+                <input type="hidden" name="period" value="all">
+            @endif
         </form>
 
         @if($hasFilters)
@@ -178,9 +198,13 @@
                 @if(request('search'))
                     <a href="{{ $filterUrl([], ['search']) }}" class="al-tag">Search: {{ request('search') }} <span aria-hidden="true">×</span></a>
                 @endif
-                @if(request('from') || request('to'))
-                    <a href="{{ $filterUrl([], ['from', 'to']) }}" class="al-tag">
-                        {{ request('from') ?: '…' }} → {{ request('to') ?: '…' }} <span aria-hidden="true">×</span>
+                @if($isAllTime)
+                    <a href="{{ $filterUrl(['from' => $today, 'to' => $today], ['period']) }}" class="al-tag">
+                        All time <span aria-hidden="true">×</span>
+                    </a>
+                @elseif(($fromDate || $toDate) && ! $isDefaultToday)
+                    <a href="{{ $filterUrl(['from' => $today, 'to' => $today], ['period']) }}" class="al-tag">
+                        {{ $fromDate ?: '…' }} → {{ $toDate ?: '…' }} <span aria-hidden="true">×</span>
                     </a>
                 @endif
                 @if(request('year'))
@@ -229,7 +253,7 @@
                         @php
                             $student = $log->student;
                             $status = strtoupper((string) $log->status);
-                            $isLate = $status === 'IN' && $log->isLateArrival();
+                            $isLate = $status === 'IN' && (bool) $log->is_late;
                             $initials = $student
                                 ? strtoupper(substr($student->firstname ?? '', 0, 1).substr($student->lastname ?? '', 0, 1))
                                 : '?';
