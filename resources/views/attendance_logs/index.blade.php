@@ -137,7 +137,7 @@
                 </div>
             </div>
 
-            <details class="al-more-filters" {{ collect($query)->only(['year', 'homeroom_section', 'gate'])->filter()->isNotEmpty() || (! $isDefaultToday && ! $isAllTime && ($fromDate || $toDate)) ? 'open' : '' }}>
+            <details class="al-more-filters" open>
                 <summary>More filters</summary>
                 <div class="al-more-filters__grid">
                     <div class="al-field">
