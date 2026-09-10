@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SmsLog extends Model
 {
+    public const STATUS_SENT = 'sent';
+
+    public const STATUS_FAILED = 'failed';
+
+    public const STATUS_SKIPPED = 'skipped';
+
+    public const STATUS_PENDING = 'pending';
+
     protected $fillable = [
         'user_id',
         'recipient',
@@ -80,10 +88,15 @@ class SmsLog extends Model
             'sent' => 'Success',
             'failed' => 'Failed',
             'skipped' => 'Skipped',
+            'pending' => 'Pending retry',
             default => ucfirst($status),
         };
 
         if ($status === 'sent' && $http) {
+            return $label.' (HTTP '.$http.')';
+        }
+
+        if ($status === 'pending' && $http) {
             return $label.' (HTTP '.$http.')';
         }
 

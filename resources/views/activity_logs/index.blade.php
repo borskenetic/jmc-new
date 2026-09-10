@@ -77,7 +77,7 @@
                 <strong class="vl-stat-card__value">{{ number_format($summary['sent']) }}</strong>
             </div>
             <div class="vl-stat-card vl-stat-card--out">
-                <span class="vl-stat-card__label">Failed / skipped</span>
+                <span class="vl-stat-card__label">Failed / pending / skipped</span>
                 <strong class="vl-stat-card__value">{{ number_format($summary['failed']) }}</strong>
             </div>
             <div class="vl-stat-card vl-stat-card--today">
@@ -138,6 +138,7 @@
                         <div class="vl-pills">
                             <a href="{{ $filterUrl([], ['status']) }}" class="vl-pill {{ ! request('status') ? 'is-active' : '' }}">All</a>
                             <a href="{{ $filterUrl(['status' => 'sent']) }}" class="vl-pill vl-pill--in {{ request('status') === 'sent' ? 'is-active' : '' }}">Sent</a>
+                            <a href="{{ $filterUrl(['status' => 'pending']) }}" class="vl-pill {{ request('status') === 'pending' ? 'is-active' : '' }}">Pending</a>
                             <a href="{{ $filterUrl(['status' => 'failed']) }}" class="vl-pill vl-pill--out {{ request('status') === 'failed' ? 'is-active' : '' }}">Failed</a>
                             <a href="{{ $filterUrl(['status' => 'skipped']) }}" class="vl-pill {{ request('status') === 'skipped' ? 'is-active' : '' }}">Skipped</a>
                         </div>

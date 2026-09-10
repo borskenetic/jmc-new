@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use App\Models\SmsLog;
 use App\Models\Student;
+use App\Services\ModemSmsService;
 use App\Support\ActivityLogger;
 use App\Support\PatronOptions;
 use Illuminate\Http\Request;
@@ -87,6 +88,7 @@ class SmsController extends Controller
         return view('sms.scan_message', [
             'arrival' => Setting::scanSmsArrivalTemplate(),
             'departure' => Setting::scanSmsDepartureTemplate(),
+            'scanSmsEnabled' => Setting::scanSmsEventsEnabled(),
         ]);
     }
 
@@ -95,6 +97,8 @@ class SmsController extends Controller
         $request->validate([
             'arrival' => 'required|string',
             'departure' => 'required|string',
+            'arrival_enabled' => 'nullable|in:0,1',
+            'departure_enabled' => 'nullable|in:0,1',
         ]);
 
         Setting::updateOrCreate(
@@ -109,6 +113,9 @@ class SmsController extends Controller
             ['key' => Setting::KEY_SCAN_SMS],
             ['value' => $request->arrival]
         );
+
+        Setting::setScanSmsEventEnabled('arrival', $request->input('arrival_enabled', '0') === '1');
+        Setting::setScanSmsEventEnabled('departure', $request->input('departure_enabled', '0') === '1');
 
         return back()->with('success', 'Gate SMS templates updated.');
     }
@@ -306,7 +313,7 @@ class SmsController extends Controller
             $this->recordSmsLog(
                 recipient: $number,
                 message: $message,
-                status: 'skipped',
+                status: SmsLog::STATUS_SKIPPED,
                 source: $source,
                 error: 'Invalid mobile number',
                 meta: $meta,
@@ -315,90 +322,29 @@ class SmsController extends Controller
             return false;
         }
 
-        $url = config('services.sms_modem.url');
-        $apiKey = config('services.sms_modem.key');
+        $modem = app(ModemSmsService::class);
+        $anySent = false;
 
-        if (! $url) {
-            Log::warning('SMS skip: SMS_MODEM_URL is empty. Set it in .env to your ngrok /send-sms URL, then php artisan config:clear');
-            foreach ($numbers as $normalized) {
-                $this->recordSmsLog(
-                    recipient: $normalized,
-                    message: $message,
-                    status: 'skipped',
-                    source: $source,
-                    error: 'SMS_MODEM_URL is not configured',
-                    meta: $meta,
-                );
-            }
-
-            return false;
-        }
-
-        $payload = array_map(
-            fn (string $normalized) => ['number' => $normalized, 'message' => $message],
-            $numbers
-        );
-
-        try {
-            Log::info('SMS POST', ['url' => $url, 'numbers' => $numbers]);
-
-            $response = Http::withHeaders([
-                'X-API-KEY' => $apiKey,
-                'ngrok-skip-browser-warning' => 'true',
-            ])
-                ->timeout(30)
-                ->post($url, $payload);
-
-            $httpMeta = array_merge($meta ?? [], ['http_status' => $response->status()]);
-
-            if (! $response->successful()) {
-                Log::warning('SMS server non-success', [
-                    'status' => $response->status(),
-                    'body' => substr($response->body(), 0, 500),
+        foreach ($numbers as $normalized) {
+            // Gate / scan SMS retry when the modem queue is full; other callers get a single attempt.
+            $ok = $source === 'scan'
+                ? $modem->sendWithRetry($normalized, $message, [
+                    'source' => $source,
+                    'meta' => $meta,
+                    'user_id' => Auth::id(),
+                ])
+                : $modem->send($normalized, $message, [
+                    'source' => $source,
+                    'meta' => $meta,
+                    'user_id' => Auth::id(),
                 ]);
 
-                foreach ($numbers as $normalized) {
-                    $this->recordSmsLog(
-                        recipient: $normalized,
-                        message: $message,
-                        status: 'failed',
-                        source: $source,
-                        error: 'HTTP '.$response->status(),
-                        meta: $httpMeta,
-                    );
-                }
-
-                return false;
+            if ($ok) {
+                $anySent = true;
             }
-
-            foreach ($numbers as $normalized) {
-                $this->recordSmsLog(
-                    recipient: $normalized,
-                    message: $message,
-                    status: 'sent',
-                    source: $source,
-                    meta: $httpMeta,
-                );
-            }
-
-            return true;
-        } catch (\Throwable $e) {
-            Log::error('SMS POST failed', ['url' => $url, 'error' => $e->getMessage()]);
-            report($e);
-
-            foreach ($numbers as $normalized) {
-                $this->recordSmsLog(
-                    recipient: $normalized,
-                    message: $message,
-                    status: 'failed',
-                    source: $source,
-                    error: $e->getMessage(),
-                    meta: $meta,
-                );
-            }
-
-            return false;
         }
+
+        return $anySent;
     }
 
     private function recordSmsLog(

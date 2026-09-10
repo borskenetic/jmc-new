@@ -56,7 +56,8 @@ class ActivityLogController extends Controller
             $summary = [
                 'total' => (clone $base)->count(),
                 'sent' => (clone $base)->where('status', 'sent')->count(),
-                'failed' => (clone $base)->whereIn('status', ['failed', 'skipped'])->count(),
+                'failed' => (clone $base)->whereIn('status', ['failed', 'skipped', 'pending'])->count(),
+                'pending' => (clone $base)->where('status', 'pending')->count(),
                 'today' => (clone $base)->whereDate('created_at', $today)->count(),
             ];
 

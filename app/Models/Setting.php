@@ -20,6 +20,16 @@ class Setting extends Model
 
     public const KEY_SCAN_SMS_DEPARTURE = 'scan_sms_departure';
 
+    public const KEY_SCAN_SMS_ARRIVAL_ENABLED = 'scan_sms_arrival_enabled';
+
+    public const KEY_SCAN_SMS_DEPARTURE_ENABLED = 'scan_sms_departure_enabled';
+
+    /** @var array<string, string> */
+    public const SCAN_SMS_EVENT_ENABLED_KEYS = [
+        'arrival' => self::KEY_SCAN_SMS_ARRIVAL_ENABLED,
+        'departure' => self::KEY_SCAN_SMS_DEPARTURE_ENABLED,
+    ];
+
     public const KEY_SMS_SIM_LOAD = 'sms_sim_load';
 
     public const DEFAULT_SCAN_SMS_ARRIVAL = 'Hello {contact}, your child {name} checked in at school at {time} ({status}).';
@@ -320,6 +330,56 @@ class Setting extends Model
         return strtoupper($status) === 'OUT'
             ? self::scanSmsDepartureTemplate()
             : self::scanSmsArrivalTemplate();
+    }
+
+    public static function isScanSmsEvent(string $event): bool
+    {
+        return array_key_exists($event, self::SCAN_SMS_EVENT_ENABLED_KEYS);
+    }
+
+    public static function scanSmsEventEnabled(string $event): bool
+    {
+        $key = self::SCAN_SMS_EVENT_ENABLED_KEYS[$event] ?? null;
+        if ($key === null) {
+            return true;
+        }
+
+        return static::booleanSetting($key, true);
+    }
+
+    public static function setScanSmsEventEnabled(string $event, bool $enabled): void
+    {
+        $key = self::SCAN_SMS_EVENT_ENABLED_KEYS[$event] ?? null;
+        if ($key === null) {
+            return;
+        }
+
+        static::updateOrCreate(
+            ['key' => $key],
+            ['value' => $enabled ? '1' : '0']
+        );
+    }
+
+    /** @return array<string, bool> */
+    public static function scanSmsEventsEnabled(): array
+    {
+        $enabled = [];
+        foreach (array_keys(self::SCAN_SMS_EVENT_ENABLED_KEYS) as $event) {
+            $enabled[$event] = static::scanSmsEventEnabled($event);
+        }
+
+        return $enabled;
+    }
+
+    protected static function booleanSetting(string $key, bool $default): bool
+    {
+        $value = static::where('key', $key)->value('value');
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return in_array(strtolower((string) $value), ['1', 'true', 'yes', 'on'], true);
     }
 
     /**

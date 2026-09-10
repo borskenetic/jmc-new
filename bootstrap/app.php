@@ -16,9 +16,18 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withSchedule(function (Schedule $schedule) {
+        $schedulerLog = storage_path('logs/scheduler.log');
+
         $schedule->command('attendance:close-stale-ins')
             ->dailyAt('00:05')
             ->timezone('Asia/Manila');
+
+        // Drain pending gate SMS when the modem queue was full (503).
+        $schedule->command('sms:retry-pending --failed-503')
+            ->everyMinute()
+            ->timezone('Asia/Manila')
+            ->withoutOverlapping()
+            ->appendOutputTo($schedulerLog);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

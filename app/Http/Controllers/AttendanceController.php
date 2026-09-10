@@ -650,6 +650,11 @@ class AttendanceController extends Controller
 
     private function sendScanSms(Student $student, string $status): void
     {
+        $event = strtoupper($status) === 'OUT' ? 'departure' : 'arrival';
+        if (! Setting::scanSmsEventEnabled($event)) {
+            return;
+        }
+
         $recipient = trim((string) ($student->emergency_number ?? ''));
         if ($recipient === '') {
             \Illuminate\Support\Facades\Log::warning('Scan SMS skip: student has no emergency_number', [
@@ -670,7 +675,7 @@ class AttendanceController extends Controller
             $recipient,
             $message,
             'scan',
-            SmsLog::studentMeta($student, strtoupper($status) === 'OUT' ? 'gate_departure' : 'gate_arrival')
+            SmsLog::studentMeta($student, $event === 'departure' ? 'gate_departure' : 'gate_arrival')
         );
     }
 }
