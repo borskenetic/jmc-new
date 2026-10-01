@@ -149,6 +149,7 @@ Route::middleware(['auth', 'can:isAdmin', LogAdminActivity::class])->group(funct
     Route::get('/register-student', [StudentController::class, 'create'])->name('students.create');
     Route::post('/register-student', [StudentController::class, 'store'])->name('students.store');
     Route::get('/students/import-template', [StudentController::class, 'downloadImportTemplate'])->name('students.import.template');
+    Route::get('/students/college-import-template', [StudentController::class, 'downloadCollegeImportTemplate'])->name('students.import.college.template');
     Route::post('/students/import', [StudentController::class, 'import'])->name('students.import');
     Route::get('/students/rfid-import-template', [StudentController::class, 'downloadRfidImportTemplate'])->name('students.rfid.import.template');
     Route::post('/students/rfid-import', [StudentController::class, 'importRfid'])->name('students.rfid.import');

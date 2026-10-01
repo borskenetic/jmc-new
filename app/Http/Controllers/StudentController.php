@@ -12,6 +12,7 @@ use App\Models\PendingStudent;
 use App\Models\Program;
 use App\Models\StudentEditRequest;
 use App\Console\Commands\NormalizeStudentNames;
+use App\Exports\CollegeStudentsImportTemplateExport;
 use App\Exports\StudentsImportTemplateExport;
 use App\Exports\StudentsListExport;
 use App\Exports\StudentsRfidImportTemplateExport;
@@ -92,6 +93,14 @@ class StudentController extends Controller
         return Excel::download(
             new StudentsImportTemplateExport,
             'students_import_template.xlsx'
+        );
+    }
+
+    public function downloadCollegeImportTemplate()
+    {
+        return Excel::download(
+            new CollegeStudentsImportTemplateExport,
+            'college_students_import_template.xlsx'
         );
     }
 

@@ -141,6 +141,7 @@
         'registerLabel' => '+ Register student',
         'pendingUrl' => route('pending.index', ['tab' => 'students']),
         'importTemplateRoute' => 'students.import.template',
+        'collegeImportTemplateRoute' => 'students.import.college.template',
         'importRoute' => 'students.import',
         'rfidImportTemplateRoute' => 'students.rfid.import.template',
         'rfidImportRoute' => 'students.rfid.import',

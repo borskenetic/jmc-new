@@ -19,9 +19,12 @@ class StudentsListExport implements FromCollection, WithHeadings
             $s->student_id ?? '',
             $s->lastname ?? '',
             $this->formatFirstNameMi($s->firstname, $s->midname),
+            $s->course ?? '',
             $s->year ?? '',
+            $this->educationalLevelValue($s),
             $this->nullableDisplay($s->lrn),
             $this->formatBirthDate($s->birth_date),
+            $s->mobile_number ?? '',
             $s->emergency_person ?? '',
             $s->emergency_number ?? '',
             $s->address ?: ($s->emergency_address ?? ''),
@@ -35,14 +38,32 @@ class StudentsListExport implements FromCollection, WithHeadings
             'ID NUMBER',
             'LAST NAME',
             'FIRST NAME & MI',
-            'GRADE LEVEL',
+            'COURSE',
+            'YEAR LEVEL',
+            'EDUCATIONAL LEVEL',
             'LRN',
             'DATE OF BIRTH',
+            'MOBILE NUMBER',
             'CONTACT PERSON',
             'NUMBER',
             'ADDRESS',
             'RFID',
         ];
+    }
+
+    private function educationalLevelValue(mixed $student): string
+    {
+        $level = $student->educational_level ?? null;
+
+        if ($level === null || $level === '') {
+            return '';
+        }
+
+        if ($level instanceof \App\Enums\EducationalLevel) {
+            return $level->value;
+        }
+
+        return (string) $level;
     }
 
     private function formatFirstNameMi(?string $firstname, ?string $midname): string

@@ -8,6 +8,7 @@
     'downloadIdsRoute' => null,
     'rfidImportTemplateRoute' => null,
     'rfidImportRoute' => null,
+    'collegeImportTemplateRoute' => null,
 ])
 
 <div class="patron-panels">
@@ -28,7 +29,12 @@
             <summary class="patron-panel-heading">Import students</summary>
             <div class="patron-panel-body">
                 <div class="patron-panel-stack">
-                    <a href="{{ route($importTemplateRoute) }}" class="btn btn-outline-secondary btn-sm w-100">Download template</a>
+                    <a href="{{ route($importTemplateRoute) }}" class="btn btn-outline-secondary btn-sm w-100">
+                        {{ $collegeImportTemplateRoute ? 'K–12 template' : 'Download template' }}
+                    </a>
+                    @if($collegeImportTemplateRoute)
+                        <a href="{{ route($collegeImportTemplateRoute) }}" class="btn btn-outline-secondary btn-sm w-100">College template</a>
+                    @endif
                     <form action="{{ route($importRoute) }}" method="POST" enctype="multipart/form-data" class="patron-import-form w-100">
                         @csrf
                         <div class="patron-import-row">

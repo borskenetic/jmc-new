@@ -115,7 +115,7 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         string $lastname,
     ): array {
         $gradeLevel = PatronOptions::normalizeYearLabel(
-            $this->value($row, ['year', 'grade_level'])
+            $this->value($row, ['year', 'year_level', 'grade_level'])
         ) ?? '';
         $educationalLevel = $this->value($row, ['educational_level']);
         if ($educationalLevel === '' && $gradeLevel !== '') {
@@ -138,8 +138,8 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
             'lrn' => $lrn,
             'year' => $gradeLevel !== '' ? $gradeLevel : null,
             'educational_level' => $educationalLevel !== '' ? $educationalLevel : null,
-            'course' => $this->value($row, ['course']) ?: null,
-            'mobile_number' => $this->value($row, ['mobile_number']) ?: null,
+            'course' => $this->value($row, ['course', 'program', 'program_code']) ?: null,
+            'mobile_number' => $this->value($row, ['mobile_number', 'mobile', 'contact_number']) ?: null,
             'birth_date' => $this->parseDate($row['birth_date'] ?? $row['date_of_birth'] ?? null),
             'emergency_person' => $this->value($row, ['emergency_person', 'contact_person']) ?: null,
             'emergency_number' => $this->value($row, ['emergency_number', 'number']) ?: null,
