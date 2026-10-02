@@ -59,6 +59,21 @@ class PatronOptions
             }
         }
 
+        // College shorthand: "1st", "Year 1", "First Year" → "1st Year"
+        $collegeOrdinals = [
+            '1st Year' => '/^(?:1st|first)(?:\s*year)?$|^year\s*1$/i',
+            '2nd Year' => '/^(?:2nd|second)(?:\s*year)?$|^year\s*2$/i',
+            '3rd Year' => '/^(?:3rd|third)(?:\s*year)?$|^year\s*3$/i',
+            '4th Year' => '/^(?:4th|fourth)(?:\s*year)?$|^year\s*4$/i',
+            '5th Year' => '/^(?:5th|fifth)(?:\s*year)?$|^year\s*5$/i',
+            '6th Year' => '/^(?:6th|sixth)(?:\s*year)?$|^year\s*6$/i',
+        ];
+        foreach ($collegeOrdinals as $canonical => $pattern) {
+            if (preg_match($pattern, $compact)) {
+                return $canonical;
+            }
+        }
+
         return $year;
     }
 

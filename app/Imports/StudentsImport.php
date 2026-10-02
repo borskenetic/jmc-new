@@ -79,7 +79,18 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
                 continue;
             }
 
-            $updates = $this->fillOnlyEmpty($student, $mapped);
+            // Enrollment fields from the file always win so re-imports can correct
+            // earlier K–12 template mistakes (course codes stored in `year`).
+            $enrollmentKeys = ['course', 'year', 'educational_level'];
+            $forced = [];
+            foreach ($enrollmentKeys as $key) {
+                if (array_key_exists($key, $mapped) && $mapped[$key] !== null && $mapped[$key] !== '') {
+                    $forced[$key] = $mapped[$key];
+                    unset($mapped[$key]);
+                }
+            }
+
+            $updates = array_merge($this->fillOnlyEmpty($student, $mapped), $forced);
 
             if (isset($updates['rfid']) && ! $this->rfidAvailable($updates['rfid'], $student->id)) {
                 unset($updates['rfid']);
@@ -114,12 +125,20 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         string $midname,
         string $lastname,
     ): array {
+        $course = $this->value($row, ['course', 'program', 'program_code']);
         $gradeLevel = PatronOptions::normalizeYearLabel(
             $this->value($row, ['year', 'year_level', 'grade_level'])
         ) ?? '';
+
+        // Repair swapped / misplaced columns (e.g. K–12 template used for college data).
+        [$course, $gradeLevel] = $this->normalizeCourseAndYear($course, $gradeLevel);
+
         $educationalLevel = $this->value($row, ['educational_level']);
         if ($educationalLevel === '' && $gradeLevel !== '') {
             $educationalLevel = PatronOptions::educationalLevelForYear($gradeLevel) ?? '';
+        }
+        if ($educationalLevel === '' && $course !== '') {
+            $educationalLevel = EducationalLevel::College->value;
         }
 
         if ($educationalLevel !== '' && ! in_array($educationalLevel, EducationalLevel::values(), true)) {
@@ -127,6 +146,16 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         }
 
         $lrn = $this->nullableText($this->value($row, ['lrn']));
+        // "1st Year" landed in LRN when college rows were imported via the K–12 template.
+        if ($lrn !== null && $this->looksLikeYearLevel($lrn) && $gradeLevel === '') {
+            $gradeLevel = PatronOptions::normalizeYearLabel($lrn) ?? $lrn;
+            $lrn = null;
+            if ($educationalLevel === '') {
+                $educationalLevel = PatronOptions::educationalLevelForYear($gradeLevel)
+                    ?? EducationalLevel::College->value;
+            }
+        }
+
         $address = $this->nullableText($this->value($row, ['address', 'home_address']));
         $emergencyAddress = $this->nullableText($this->value($row, ['emergency_address']));
 
@@ -138,7 +167,7 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
             'lrn' => $lrn,
             'year' => $gradeLevel !== '' ? $gradeLevel : null,
             'educational_level' => $educationalLevel !== '' ? $educationalLevel : null,
-            'course' => $this->value($row, ['course', 'program', 'program_code']) ?: null,
+            'course' => $course !== '' ? $course : null,
             'mobile_number' => $this->value($row, ['mobile_number', 'mobile', 'contact_number']) ?: null,
             'birth_date' => $this->parseDate($row['birth_date'] ?? $row['date_of_birth'] ?? null),
             'emergency_person' => $this->value($row, ['emergency_person', 'contact_person']) ?: null,
@@ -155,6 +184,59 @@ class StudentsImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
             fn (mixed $value, string $key) => $key === 'student_id' || ($value !== null && $value !== ''),
             ARRAY_FILTER_USE_BOTH,
         );
+    }
+
+    /**
+     * @return array{0: string, 1: string} [course, year]
+     */
+    private function normalizeCourseAndYear(string $course, string $year): array
+    {
+        $courseIsYear = $this->looksLikeYearLevel($course);
+        $yearIsCourse = $year !== '' && ! $this->looksLikeYearLevel($year) && $this->looksLikeCourseCode($year);
+        $courseIsCourse = $course !== '' && $this->looksLikeCourseCode($course);
+
+        if ($courseIsYear && ($yearIsCourse || $year === '')) {
+            return [$yearIsCourse ? $year : '', PatronOptions::normalizeYearLabel($course) ?? $course];
+        }
+
+        if ($yearIsCourse && $course === '') {
+            return [$year, ''];
+        }
+
+        if ($yearIsCourse && $courseIsCourse) {
+            // Prefer explicit course column; drop the bogus year so a later LRN repair can fill it.
+            return [$course, ''];
+        }
+
+        return [$course, $year];
+    }
+
+    private function looksLikeYearLevel(string $value): bool
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return false;
+        }
+
+        if (PatronOptions::educationalLevelForYear($value) !== null) {
+            return true;
+        }
+
+        return (bool) preg_match(
+            '/^(?:[1-6](?:st|nd|rd|th)?\s*year|year\s*[1-6]|grade\s*(?:1[0-2]|[1-9])|kinder\s*[12])$/i',
+            $value
+        );
+    }
+
+    private function looksLikeCourseCode(string $value): bool
+    {
+        $value = trim($value);
+        if ($value === '' || $this->looksLikeYearLevel($value)) {
+            return false;
+        }
+
+        // College program codes: BSN, BSBA-FM, BEED, MEDTECH, etc.
+        return (bool) preg_match('/^[A-Z]{2,}[A-Z0-9\s\-]*$/i', $value);
     }
 
     /**
