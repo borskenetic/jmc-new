@@ -197,10 +197,14 @@ class StudentScanService
             'source' => 'gate_sync',
         ]);
 
-        try {
-            $this->sendScanSms($student, $isLate ? 'LATE' : $status, $scannedAt);
-        } catch (\Throwable $e) {
-            report($e);
+        // Only SMS near-realtime offline syncs. Backlog uploads must not block on modem I/O.
+        $smsWindowMinutes = (int) config('attendance.gate_sync_sms_within_minutes', 30);
+        if ($smsWindowMinutes > 0 && $scannedAt->greaterThanOrEqualTo(now()->subMinutes($smsWindowMinutes))) {
+            try {
+                $this->sendScanSms($student, $isLate ? 'LATE' : $status, $scannedAt);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return $log;

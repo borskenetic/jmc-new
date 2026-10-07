@@ -31,7 +31,28 @@ async function cloudFetch(config, route, options = {}) {
     ...(options.headers || {}),
   };
 
-  const response = await fetch(url, { ...options, headers });
+  const timeoutMs = Number(config.fetch_timeout_ms) > 0
+    ? Number(config.fetch_timeout_ms)
+    : 120000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`Cloud request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+
   const text = await response.text();
   let body = null;
   try {
@@ -77,10 +98,10 @@ async function pullRoster(config) {
   };
 }
 
-async function pushAttendance(config) {
+async function pushAttendanceBatch(config) {
   const pending = getPendingLogs();
   if (pending.length === 0) {
-    return { accepted: 0, rejected: 0 };
+    return { accepted: 0, rejected: 0, processed: 0, done: true };
   }
 
   const body = {
@@ -100,12 +121,16 @@ async function pushAttendance(config) {
     body: JSON.stringify(body),
   });
 
-  const acceptedUuids = (result.results || [])
-    .filter((row) => row.accepted)
-    .map((row) => row.client_uuid);
+  // Mark both accepted and rejected so failed rows cannot block the queue forever.
+  const processedUuids = (result.results || [])
+    .map((row) => row.client_uuid)
+    .filter(Boolean);
 
-  if (acceptedUuids.length) {
-    markSynced(acceptedUuids);
+  if (processedUuids.length) {
+    markSynced(processedUuids);
+  } else if (pending.length) {
+    // Server responded without per-row results — still clear this batch to avoid a stuck loop.
+    markSynced(pending.map((row) => row.client_uuid));
   }
 
   setSyncState({
@@ -116,7 +141,30 @@ async function pushAttendance(config) {
   return {
     accepted: result.accepted || 0,
     rejected: result.rejected || 0,
+    processed: processedUuids.length || pending.length,
+    done: countPending() === 0,
   };
+}
+
+async function pushAttendance(config) {
+  let accepted = 0;
+  let rejected = 0;
+  let batches = 0;
+  const maxBatches = Number(config.push_batches_per_cycle) > 0
+    ? Number(config.push_batches_per_cycle)
+    : 20;
+
+  while (batches < maxBatches) {
+    const batch = await pushAttendanceBatch(config);
+    accepted += batch.accepted;
+    rejected += batch.rejected;
+    batches += 1;
+    if (batch.done || batch.processed === 0) {
+      break;
+    }
+  }
+
+  return { accepted, rejected, batches };
 }
 
 async function checkHealth(config) {
@@ -125,15 +173,59 @@ async function checkHealth(config) {
   return true;
 }
 
+let syncInFlight = null;
+
 async function runSyncCycle(config) {
+  if (syncInFlight) {
+    return syncInFlight;
+  }
+
+  syncInFlight = (async () => {
+    let push = { accepted: 0, rejected: 0, batches: 0 };
+    let pullError = null;
+    let pushError = null;
+
+    try {
+      await checkHealth(config);
+    } catch (error) {
+      setSyncState({ online: 0, pending_count: countPending() });
+      return { ok: false, error: error.message };
+    }
+
+    // Upload first so a slow/failing roster pull cannot starve the backlog.
+    try {
+      push = await pushAttendance(config);
+    } catch (error) {
+      pushError = error.message;
+    }
+
+    try {
+      await pullRoster(config);
+    } catch (error) {
+      pullError = error.message;
+    }
+
+    const pending = countPending();
+    setSyncState({
+      online: pushError ? 0 : 1,
+      pending_count: pending,
+    });
+
+    if (pushError) {
+      return { ok: false, error: pushError, push, pull_error: pullError };
+    }
+
+    return {
+      ok: true,
+      push,
+      pull_error: pullError,
+    };
+  })();
+
   try {
-    await checkHealth(config);
-    await pullRoster(config);
-    const push = await pushAttendance(config);
-    return { ok: true, push };
-  } catch (error) {
-    setSyncState({ online: 0, pending_count: countPending() });
-    return { ok: false, error: error.message };
+    return await syncInFlight;
+  } finally {
+    syncInFlight = null;
   }
 }
 

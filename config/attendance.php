@@ -14,6 +14,13 @@ return [
     'scan_cooldown_minutes' => (int) env('ATTENDANCE_SCAN_COOLDOWN_MINUTES', 10),
 
     /*
+    | Offline gate sync: only send parent SMS when the scan is this recent.
+    | Older backlog uploads skip SMS so the modem cannot stall the batch.
+    | Set to 0 to disable SMS for all gate_sync uploads.
+    */
+    'gate_sync_sms_within_minutes' => (int) env('ATTENDANCE_GATE_SYNC_SMS_WITHIN_MINUTES', 30),
+
+    /*
     | Student day schedule — IN after (in_time + grace) is marked late.
     | Editable in admin UI; values below are defaults when unset in DB.
     | Separate policies: k10 (Kinder–Grade 10) and shs (Senior High).
