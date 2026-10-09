@@ -253,7 +253,8 @@
                         @php
                             $student = $log->student;
                             $status = strtoupper((string) $log->status);
-                            $isLate = $status === 'IN' && (bool) $log->is_late;
+                            $isCollege = $student && app(\App\Services\StudentAttendanceSchedule::class)->isCollegeStudent($student);
+                            $isLate = $status === 'IN' && (bool) $log->is_late && ! $isCollege;
                             $initials = $student
                                 ? strtoupper(substr($student->firstname ?? '', 0, 1).substr($student->lastname ?? '', 0, 1))
                                 : '?';

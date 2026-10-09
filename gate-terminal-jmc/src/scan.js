@@ -274,9 +274,23 @@ function previewScan(rawToken) {
   };
 }
 
-function isLateAt(scannedAtIso, settings, student = null) {
-  const schedule = scheduleForStudent(settings, student);
+function isCollegeStudent(student = null) {
   const level = String(student?.educational_level || '').toLowerCase();
+  if (level === 'college') {
+    return true;
+  }
+  // Year labels like "1st Year" … "6th Year" even when educational_level is blank.
+  return /^(?:[1-6](?:st|nd|rd|th))\s+year$/i.test(String(student?.year || '').trim());
+}
+
+function isLateAt(scannedAtIso, settings, student = null) {
+  const level = String(student?.educational_level || '').toLowerCase();
+  // College has no single campus-wide start time — never mark LATE.
+  if (isCollegeStudent(student)) {
+    return false;
+  }
+
+  const schedule = scheduleForStudent(settings, student);
   const year = String(student?.year || '');
   const isShs =
     level === 'high_school_senior' ||

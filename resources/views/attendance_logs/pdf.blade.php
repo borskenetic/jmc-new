@@ -32,7 +32,11 @@
                     <td>{{ $log->student->course ?? 'Unknown' }}</td>
                     <td>{{ $log->section ?? '—' }}</td>
                     <td>{{ $log->gate ?? '—' }}</td>
-                    <td>{{ ($log->status === 'IN' && $log->is_late) ? 'LATE' : strtoupper($log->status) }}</td>
+                    <td>@php
+                        $status = strtoupper((string) $log->status);
+                        $isCollege = $log->student && app(\App\Services\StudentAttendanceSchedule::class)->isCollegeStudent($log->student);
+                        $isLate = $status === 'IN' && (bool) $log->is_late && ! $isCollege;
+                    @endphp{{ $isLate ? 'LATE' : $status }}</td>
                     <td>
                         {{ $log->scanned_at?->format('Y-m-d h:i A') ?? '—' }}
                     </td>

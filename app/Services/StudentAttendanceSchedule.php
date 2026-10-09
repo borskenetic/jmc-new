@@ -7,6 +7,7 @@ use App\Models\AttendanceLog;
 use App\Models\GradeSection;
 use App\Models\Setting;
 use App\Models\Student;
+use App\Support\PatronOptions;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
 
@@ -149,9 +150,38 @@ class StudentAttendanceSchedule
 
     public function isLate(?Carbon $at = null, ?Student $student = null): bool
     {
+        // College has no single campus-wide start time — never mark LATE.
+        if ($this->isCollegeStudent($student)) {
+            return false;
+        }
+
         $at = ($at ?? Carbon::now($this->timezone()))->copy()->timezone($this->timezone());
 
         return $at->gt($this->lateCutoffForDate($at->toDateString(), $student));
+    }
+
+    public function isCollegeStudent(?Student $student = null): bool
+    {
+        if (! $student) {
+            return false;
+        }
+
+        $level = $student->educational_level;
+        if ($level instanceof EducationalLevel) {
+            if ($level === EducationalLevel::College) {
+                return true;
+            }
+        } else {
+            $raw = $student->getRawOriginal('educational_level') ?? $level;
+            if (is_string($raw) && strtolower(trim($raw)) === EducationalLevel::College->value) {
+                return true;
+            }
+        }
+
+        // Many college records only have year ("1st Year") filled — treat those as college too.
+        $fromYear = PatronOptions::educationalLevelForYear($student->year);
+
+        return $fromYear === EducationalLevel::College->value;
     }
 
     public function isOutAllowed(?Carbon $at = null): bool
